@@ -1,0 +1,141 @@
+#include "FEM.h"
+#include "LocalAssembly.h"
+#include <iomanip>
+#include <ctime> 
+#include <fstream>
+
+void FEM::ReadParameters()
+{
+	std::ifstream parameters("../res/input/parameters.txt");
+	int n = 0;
+
+	parameters >> n;
+	m_lambdas.resize(n);
+	for (int i = 0; i < n; i++)
+		parameters >> m_lambdas[i];
+	
+	parameters >> n;
+	m_gammas.resize(n);
+	for (int i = 0; i < n; i++)
+		parameters >> m_gammas[i];
+
+	parameters >> n;
+	m_bettas.resize(n);
+	for (int i = 0; i < n; i++)
+		parameters >> m_bettas[i];
+}
+
+void FEM::CollectSLAE()
+{
+	m_sparseSLAE.GenerateSLAE(m_grid.Elements(), m_grid.SizeNodes(), m_grid.GetNumberNeighboringNodes());
+
+	LocalAssembly lA(*this);
+	for (int elemNum = 0; elemNum < m_grid.SizeElements(); elemNum++)
+	{
+		FiniteMatrix<SIZE_ELEMENT> lM;
+		FiniteVector<SIZE_ELEMENT> lV;
+		lA.GetFiniteMatrixVectorElement(lM, lV, elemNum);
+
+		AddFiniteMatrix(lM, m_grid.GetElement(elemNum).vertexes);
+		AddFiniteVector(lV, m_grid.GetElement(elemNum).vertexes);
+	}
+}
+
+void FEM::ConsiderBoundaryConditions()
+{
+	ConsiderBC_2();
+	ConsiderBC_3();
+	ConsiderBC_1();
+}
+
+void FEM::ConsiderBC_2()
+{
+	LocalAssembly lA(*this);
+	
+	for (int edgeNum = 0; edgeNum < m_grid.SizeEdgesBC_2(); edgeNum++)
+	{
+		FiniteVector<SIZE_EDGE> lV;
+		lA.GetFiniteVectorBC_2(lV, edgeNum);
+		AddFiniteVector(lV, m_grid.GetEdgeBC_2(edgeNum).vertexes);
+	}
+}
+
+void FEM::ConsiderBC_3()
+{
+	LocalAssembly lA(*this);
+	
+	for (int edgeNum = 0; edgeNum < m_grid.SizeEdgesBC_3(); edgeNum++)
+	{
+		FiniteMatrix<SIZE_EDGE> lM;
+		FiniteVector<SIZE_EDGE> lV;
+		lA.GetFiniteMatrixVectorBC_3(lM, lV, edgeNum);
+
+		AddFiniteMatrix(lM, m_grid.GetEdgeBC_3(edgeNum).vertexes);
+		AddFiniteVector(lV, m_grid.GetEdgeBC_3(edgeNum).vertexes);
+	}
+}
+
+void FEM::ConsiderBC_1()
+{
+	SparseSLAE::SparseMatrix& M = m_sparseSLAE.Set_M();
+	Vector& b = m_sparseSLAE.Set_b();
+
+	for (int nodeNum = 0; nodeNum < m_grid.SizeNodesBC_1(); nodeNum++)
+	{
+		int numberNodeBC_1 = m_grid.GetNumberNodeBC_1(nodeNum);
+
+		M.di[numberNodeBC_1] = 1;
+		m_sparseSLAE.ZeroingRow(numberNodeBC_1);
+		b[numberNodeBC_1] = m_u_g(m_grid.GetNode(numberNodeBC_1));
+	}
+}
+
+double FEM::NumericalF(int elemNum, int verNum) const
+{
+	return  -Lambda(m_grid.GetElement(elemNum).numberFormula) * operatorLaplace(m_u_g, m_grid.GetNode(m_grid.GetElement(elemNum).vertexes[verNum]))
+		+ Gamma(m_grid.GetElement(elemNum).numberFormula) * m_u_g(m_grid.GetNode(m_grid.GetElement(elemNum).vertexes[verNum]));
+}
+
+double FEM::NumericalTetta(FiniteVector<SIZE_NODE> n, int edgeNum, int verNum) const
+{
+	return Lambda(m_grid.GetElement(m_grid.GetEdgeBC_2(edgeNum).elemNum).numberFormula) * gradient(m_u_g, m_grid.GetNode(m_grid.GetEdgeBC_2(edgeNum).vertexes[verNum])) * n;
+}
+
+double FEM::NumericalU_betta(FiniteVector<SIZE_NODE> n, int edgeNum, int verNum) const
+{
+	return Lambda(m_grid.GetElement(m_grid.GetEdgeBC_3(edgeNum).elemNum).numberFormula) / Betta(m_grid.GetElement(m_grid.GetEdgeBC_3(edgeNum).elemNum).numberFormula) *
+		gradient(m_u_g, m_grid.GetNode(m_grid.GetEdgeBC_3(edgeNum).vertexes[verNum])) * n + m_u_g(m_grid.GetNode(m_grid.GetEdgeBC_3(edgeNum).vertexes[verNum]));
+}
+
+std::ostream& FEM::Output(std::ostream& os) const
+{
+	const Vector& x = m_sparseSLAE.Get_x();
+
+	double sum_1 = 0, sum_2 = 0;
+	os << "+-------+-------+-------+----------------------+----------------------+----------------------+\n";
+	os << "|   X   |   Y   |   Z   |          u           |          u*          |         |u-u*|       |\n";
+	os << "+-------+-------+-------+----------------------+----------------------+----------------------+\n";
+	for (int i = 0; i < m_grid.SizeNodes(); i++)
+	{
+		auto node = m_grid.GetNode(i);
+		for (int j = 0; j < node.size(); j++)
+			os << "|" << std::fixed << std::setw(7) << std::setprecision(3) << node[j];
+
+		os << "|" << std::scientific << std::setw(22) << std::setprecision(DBL_DIG) << x[i] << "|"
+			<< std::scientific << std::setw(22) << std::setprecision(DBL_DIG) << m_u_g(node) << "|"
+			<< std::scientific << std::setw(22) << std::setprecision(DBL_DIG) << std::abs(x[i] - m_u_g(node)) << "|\n";
+
+		if (i % m_grid.GetgridPattern() == 0)
+		{
+			sum_1 += (x[i] - m_u_g(node)) * (x[i] - m_u_g(node));
+			sum_2 += m_u_g(node) * m_u_g(node);
+		}
+		
+	}
+	os << "+--------------------------------------------------------------------------------------------+\n";
+	os << "|   ||u-u*||/||u*||    " << std::scientific << std::setw(70) << std::setprecision(DBL_DIG) << std::sqrt(sum_1 / sum_2) << "|\n";
+	os << "+--------------------------------------------------------------------------------------------+\n";
+
+	return os;
+}
+

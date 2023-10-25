@@ -1,6 +1,24 @@
-int main(void)
+#include "grid/Grid.h"
+#include "FEM/FEM.h"
+#include <iostream>
+
+int main()
 {
-	std::cout<<"HelloWorld!"<<std::endl;
+	Grid grid;
+
+	grid.ReadGrid();
+	grid.CreateGrid();
+	grid.WriteGrid();
+
+	FEM fem(grid, [](const std::array<double, SIZE_NODE>& args)
+		{auto&& [x, y, z] = args; return x + y + z;	});
+	
+	fem.ReadParameters();
+	fem.CollectSLAE();
+	fem.ConsiderBoundaryConditions();
+	fem.Solve();
+	fem.Output(std::cout);
+
 	return 0;
 }
 
