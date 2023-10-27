@@ -1,5 +1,5 @@
-#ifndef MATRIX_VECTOR
-#define MATRIX_VECTOR
+#pragma once
+
 #include <vector>
 #include <cmath>
 
@@ -45,4 +45,3 @@ public:
 	double InverseMatrix();
 	friend Matrix operator*(double value, const Matrix& M) { return M * value; }
 };
-#endif

@@ -1,5 +1,5 @@
-#ifndef SPARSE_SLAE
-#define SPARSE_SLAE
+#pragma once
+
 #include "../vector/MatrixVector.h"
 #include "../grid/Grid.h"
 
@@ -52,4 +52,3 @@ private:
 	void LUDecomposition();
 	void IncompleteLUDecomposition(Vector& L, Vector& U, Vector& D) const;
 };
-#endif

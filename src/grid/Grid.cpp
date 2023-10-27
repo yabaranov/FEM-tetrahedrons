@@ -1,4 +1,6 @@
 #include <fstream>
+#include <rapidjson/document.h>
+#include <rapidjson/error/en.h>
 #include "Grid.h"
 #include "TransformCubeToHexagon.h"
 
@@ -11,7 +13,7 @@ void Grid::CreateGrid()
 	//FormBC(xyz);	
 }
 
-void Grid::TransformDomains(void)
+void Grid::TransformDomains()
 {
 	for (int i = 0; i < m_subdomains.size(); i++)
 	{
@@ -530,117 +532,181 @@ void Grid::FormElements(const std::array<std::vector<double>, SIZE_NODE>& xyz, s
 //	}
 //}
 
-void Grid::ReadGrid()
+bool Grid::ReadGridJSON()
 {
-	std::ifstream domain("../res/input/domain.txt");
-	int n = 0, m = 0;
+	std::string JSONPath = "../res/input/grid.json";
+	const std::string JSONString = getFileString(JSONPath);
 
-	domain >> n >> m;
-	m_supportNodes.resize(m);
-	for (int i = 0; i < m; i++)
+	if (JSONString.empty())
 	{
-		m_supportNodes[i].resize(n);
-		for (int j = 0; j < n; j++)						
-			domain >> m_supportNodes[i][j].x >> m_supportNodes[i][j].y;			
-	}
-		
-	domain >> n;
-	m_height.resize(n);
-	for (int i = 0; i < n; i++)	
-		domain >> m_height[i];
-	
-
-	domain >> n;
-	m_subdomains.resize(n);
-
-	for (int i = 0; i < n; i++)
-	{
-		domain >> m_subdomains[i].numberFormula;
-		for (int j = 0; j < m_subdomains[i].boundaries.size(); j++)
-			domain >> m_subdomains[i].boundaries[j];
+		std::cerr << "No JSON resources file!" << std::endl;
+		return false;
 	}
 
-
-	std::ifstream mesh("../res/input/mesh.txt");
-
-	m_splittingGrid.resize(SIZE_NODE);
-	m_splittingGrid[0].resize(m_supportNodes[0].size() - 1);
-	m_splittingGrid[1].resize(m_supportNodes.size() - 1);
-	m_splittingGrid[2].resize(m_height.size() - 1);
-
-	for (int i = 0; i < SIZE_NODE; i++)	
-		for (int j = 0; j < m_splittingGrid[i].size(); j++)
-			mesh >> m_splittingGrid[i][j].numIntervals >> m_splittingGrid[i][j].coefficientDischarge;
-
-	mesh >> n;
-	switch (n)
+	rapidjson::Document document;
+	rapidjson::ParseResult parseResult = document.Parse(JSONString.c_str());
+	if (!parseResult)
 	{
-		case 5:
-			m_gridPattern = GRID_PATTERN::FIVE;
-			break;
-		case 6:
-			m_gridPattern = GRID_PATTERN::SIX;
-			break;
-		default:
-			std::cerr << "Error grid pattern!";
-			break;
+		std::cerr << "JSON parse error: " << rapidjson::GetParseError_En(parseResult.Code()) << "(" << parseResult.Offset() << ")" << std::endl;
+		std::cerr << "In JSON file: " << JSONPath << std::endl;
+		return false;
 	}
 
-	mesh >> n;
-	switch (n)
+	auto domainIt = document.FindMember("domain");
+	if (domainIt != document.MemberEnd())
 	{
-	case 0:
-		m_gridNesting = NESTING::NON_NESTED;
-		break;
-	case 1:
-		m_gridNesting = NESTING::NESTED;
-		break;
-	case 2:
-		m_gridNesting = NESTING::DOUBLE_NESTED;
-		break;
-	default:
-		std::cerr << "Error grid nesting!";
-		break;
-	}
-
-	std::ifstream boundaryConditions("../res/input/boundary ñonditions.txt");
-	boundaryConditions >> n;
-	m_BC.resize(n);
-	for (int i = 0; i < n; i++)
-	{
-		boundaryConditions >> m;
-		switch (m)
+		const auto supportNodesArray = domainIt->value["supportNodes"].GetArray();
+		m_supportNodes.resize(supportNodesArray.Size());
+		for (size_t i = 0; i < supportNodesArray.Size(); i++)
 		{
-		case 1:
-			m_BC[i].typeBC = TYPE_BOUNDARY_CONDITION::FIRST;
-			break;
-		case 2:
-			m_BC[i].typeBC = TYPE_BOUNDARY_CONDITION::SECOND;
-			break;
-
-		case 3:
-			m_BC[i].typeBC = TYPE_BOUNDARY_CONDITION::THIRD;
-			break;
-		default:
-			std::cerr << "Error type boundary condition!";
-			break;
+			m_supportNodes[i].resize(supportNodesArray[i].Size());
+			for (size_t j = 0; j < supportNodesArray[i].Size(); j++)
+			{
+				const auto x = supportNodesArray[i][j]["x"].GetDouble();
+				const auto y = supportNodesArray[i][j]["y"].GetDouble();
+				m_supportNodes[i][j] = Point2D{ x, y };
+			}
 		}
-		boundaryConditions >> m_BC[i].numberFormula;
-		for (int j = 0; j < m_BC[i].boundaries.size(); j++)
-			boundaryConditions >> m_BC[i].boundaries[j];
+
+		const auto heightArray = domainIt->value["height"].GetArray();
+		m_height.resize(heightArray.Size());
+		for (size_t i = 0; i < heightArray.Size(); i++)
+			m_height[i] = heightArray[i].GetDouble();
+
+		const auto subdomainsArray = domainIt->value["subdomains"].GetArray();
+		m_subdomains.resize(subdomainsArray.Size());
+		for (size_t i = 0; i < subdomainsArray.Size(); i++)
+		{
+			const auto numberFormula = subdomainsArray[i]["numberFormula"].GetInt();
+
+			const auto subdomainsArrayBoundaries = subdomainsArray[i]["boundaries"].GetArray();
+			std::array<int, SIZE_SUBDOMAIN> boundaries;
+			for (size_t j = 0; j < subdomainsArrayBoundaries.Size(); j++)
+				boundaries[j] = subdomainsArrayBoundaries[j].GetUint();
+
+			std::array<int, SIZE_SUBDOMAIN / 2> rlimits{ m_supportNodes[0].size(), m_supportNodes.size(), m_height.size() };
+			for (size_t j = 0; j < boundaries.size(); j++)
+				if (boundaries[j] < 0 || boundaries[j] >= rlimits[j / 2])
+				{
+					std::cerr << "Number boundaries in subdomains[" + std::to_string(i) + "] is wrong!" << std::endl;
+					return false;
+				}
+
+			m_subdomains[i] = Subdomain{ numberFormula,  boundaries };
+		}
 	}
 
+	auto meshIt = document.FindMember("mesh");
+	if (meshIt != document.MemberEnd())
+	{
+		const auto splittingGridArray = meshIt->value["splittingGrid"].GetArray();
+		for (size_t i = 0; i < splittingGridArray.Size(); i++)
+		{
+			m_splittingGrid[i].resize(splittingGridArray[i].Size());
+			for (size_t j = 0; j < splittingGridArray[i].Size(); j++)
+			{
+				auto numIntervals = splittingGridArray[i][j]["numIntervals"].GetInt();
+
+				auto coefficientDischarge = splittingGridArray[i][j]["coefficientDischarge"].GetDouble();
+				if (coefficientDischarge < 0)
+				{
+					std::cerr << "Coefficient discharge in splittingGrid[" + std::to_string(i) + "] < 0!" << std::endl;
+					return false;
+				}
+				m_splittingGrid[i][j] = Splitting{ numIntervals, coefficientDischarge };
+			}
+		}
+
+		const auto gridPattern = meshIt->value["gridPattern"].GetInt();
+		switch (gridPattern)
+		{
+			case 5:
+				m_gridPattern = GRID_PATTERN::FIVE; break;
+			case 6:
+				m_gridPattern = GRID_PATTERN::SIX; break;
+			default:
+				std::cerr << "Error grid pattern!"; return false;
+		}
+
+		const auto gridNesting = meshIt->value["gridNesting"].GetInt();
+		switch (gridNesting)
+		{
+			case 0:
+				m_gridNesting = NESTING::NON_NESTED; break;
+			case 1:
+				m_gridNesting = NESTING::NESTED; break;
+			case 2:
+				m_gridNesting = NESTING::DOUBLE_NESTED; break;
+			default:
+				std::cerr << "Error grid nesting!"; return false;
+		}
+	} 
+
+	auto boundaryConditionsIt = document.FindMember("boundaryConditions");
+	if (meshIt != document.MemberEnd())
+	{
+		const auto boundaryConditionsArray = boundaryConditionsIt->value.GetArray();
+		m_BC.resize(boundaryConditionsArray.Size());
+
+		for (size_t i = 0; i < boundaryConditionsArray.Size(); i++)
+		{
+			auto typeboundaryCondition = boundaryConditionsArray[i]["typeBC"].GetInt();
+			TYPE_BOUNDARY_CONDITION typeBC;
+
+			switch (typeboundaryCondition)
+			{
+			case 1:
+				typeBC = TYPE_BOUNDARY_CONDITION::FIRST; break;
+			case 2:
+				typeBC = TYPE_BOUNDARY_CONDITION::SECOND; break;
+			case 3:
+				typeBC = TYPE_BOUNDARY_CONDITION::THIRD; break;
+			default:
+				std::cerr << "Error type boundary condition in boundaryConditions[" + std::to_string(i) + "]!"; return false;
+			}
+
+			int numberFormula = boundaryConditionsArray[i]["numberFormula"].GetUint();
+			const auto boundaryConditionsArrayBoundaries = boundaryConditionsArray[i]["boundaries"].GetArray();
+			std::array<int, SIZE_SUBDOMAIN> boundaries;
+			for (size_t j = 0; j < boundaryConditionsArrayBoundaries.Size(); j++)
+				boundaries[j] = boundaryConditionsArrayBoundaries[j].GetUint();
+
+			std::array<int, SIZE_SUBDOMAIN / 2> rlimits{ m_supportNodes[0].size(), m_supportNodes.size(), m_height.size() };
+			for (size_t j = 0; j < boundaries.size(); j++)
+				if (boundaries[j] < 0 || boundaries[j] >= rlimits[j / 2])
+				{
+					std::cerr << "Number boundaries in subdomains[" + std::to_string(i) + "] is wrong!" << std::endl;
+					return false;
+				}
+
+			m_BC[i] = BoundaryCondition{ typeBC,  numberFormula, boundaries };
+		}
+	}
+	return true;
 }
 
-void Grid::WriteGrid() const
+bool Grid::WriteGrid() const
 {
-	std::ofstream gridNodes("../res/output/nodes.txt");
-
+	std::string filePath = "../res/output/nodes.txt";
+	std::ofstream gridNodes;
+	gridNodes.open(filePath.c_str(), std::ios::out | std::ios::binary);
+	if (!gridNodes.is_open())
+	{
+		std::cerr << "Failed to open file: " << filePath << std::endl;
+		return false;
+	}
 	for (const auto& node : m_nodes)
 		gridNodes << node[0] << " " << node[1] << " " << node[2] << "\n";
 
-	std::ofstream gridElements("../res/output/elements.txt");
 
+	filePath = "../res/output/elements.txt";
+	std::ofstream gridElements;
+	gridElements.open(filePath.c_str(), std::ios::out | std::ios::binary);
+	if (!gridElements.is_open())
+	{
+		std::cerr << "Failed to open file: " << filePath << std::endl;
+		return false;
+	}
 	for (const auto& elem : m_elements)
 		gridElements << elem.vertexes[0] << " " << elem.vertexes[1] << " " <<
 		elem.vertexes[2] << " " << elem.vertexes[3] << "\n";

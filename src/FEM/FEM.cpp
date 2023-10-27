@@ -1,28 +1,58 @@
 #include "FEM.h"
 #include "LocalAssembly.h"
 #include <iomanip>
-#include <ctime> 
+#include <rapidjson/document.h>
+#include <rapidjson/error/en.h>
 #include <fstream>
 
-void FEM::ReadParameters()
+bool FEM::ReadParametersJSON()
 {
-	std::ifstream parameters("../res/input/parameters.txt");
-	int n = 0;
+	std::string JSONPath = "../res/input/parameters.json";
+	const std::string JSONString = getFileString(JSONPath);
 
-	parameters >> n;
-	m_lambdas.resize(n);
-	for (int i = 0; i < n; i++)
-		parameters >> m_lambdas[i];
-	
-	parameters >> n;
-	m_gammas.resize(n);
-	for (int i = 0; i < n; i++)
-		parameters >> m_gammas[i];
+	if (JSONString.empty())
+	{
+		std::cerr << "No JSON resources file!" << std::endl;
+		return false;
+	}
 
-	parameters >> n;
-	m_bettas.resize(n);
-	for (int i = 0; i < n; i++)
-		parameters >> m_bettas[i];
+	rapidjson::Document document;
+	rapidjson::ParseResult parseResult = document.Parse(JSONString.c_str());
+	if (!parseResult)
+	{
+		std::cerr << "JSON parse error: " << rapidjson::GetParseError_En(parseResult.Code()) << "(" << parseResult.Offset() << ")" << std::endl;
+		std::cerr << "In JSON file: " << JSONPath << std::endl;
+		return false;
+	}
+
+	auto lambdasIt = document.FindMember("lambdas");
+	if (lambdasIt != document.MemberEnd())
+	{
+		const auto lambdasArray = lambdasIt->value.GetArray();
+		m_lambdas.resize(lambdasArray.Size());
+		for (size_t i = 0; i < lambdasArray.Size(); i++)
+			m_lambdas[i] = lambdasArray[i].GetDouble();
+	}
+
+	auto gammasIt = document.FindMember("gammas");
+	if (gammasIt != document.MemberEnd())
+	{
+		const auto gammasArray = gammasIt->value.GetArray();
+		m_gammas.resize(gammasArray.Size());
+		for (size_t i = 0; i < gammasArray.Size(); i++)
+			m_gammas[i] = gammasArray[i].GetDouble();
+	}
+
+	auto bettasIt = document.FindMember("bettas");
+	if (bettasIt != document.MemberEnd())
+	{
+		const auto bettasArray = bettasIt->value.GetArray();
+		m_bettas.resize(bettasArray.Size());
+		for (size_t i = 0; i < bettasArray.Size(); i++)
+			m_bettas[i] = bettasArray[i].GetDouble();
+	}
+
+	return true;
 }
 
 void FEM::CollectSLAE()

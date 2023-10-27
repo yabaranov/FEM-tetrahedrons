@@ -26,3 +26,5 @@ src/FEM/LocalAssembly.cpp
 )
 
 target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_17)
+
+include_directories(external/rapidjson/include)

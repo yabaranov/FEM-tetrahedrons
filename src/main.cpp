@@ -6,14 +6,14 @@ int main()
 {
 	Grid grid;
 
-	grid.ReadGrid();
+	grid.ReadGridJSON();
 	grid.CreateGrid();
 	grid.WriteGrid();
 
 	FEM fem(grid, [](const std::array<double, SIZE_NODE>& args)
 		{auto&& [x, y, z] = args; return x + y + z;	});
 	
-	fem.ReadParameters();
+	fem.ReadParametersJSON();
 	fem.CollectSLAE();
 	fem.ConsiderBoundaryConditions();
 	fem.Solve();

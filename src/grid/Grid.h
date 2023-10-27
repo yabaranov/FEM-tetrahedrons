@@ -1,5 +1,5 @@
-#ifndef GRID
-#define GRID
+#pragma once
+
 #include <vector>
 #include <array>
 #include <functional>
@@ -10,9 +10,9 @@ class Grid
 public:
 	Grid() {}
 	~Grid() {}
-	void ReadGrid();
+	bool ReadGridJSON();
 	void CreateGrid();
-	void WriteGrid() const;
+	bool WriteGrid() const;
 	
 	struct Element
 	{
@@ -64,8 +64,10 @@ private:
 
 	struct Subdomain
 	{		
-		std::array<int, SIZE_SUBDOMAIN> boundaries;
+
 		int numberFormula;
+		std::array<int, SIZE_SUBDOMAIN> boundaries;
+		
 	};
 	std::vector<Subdomain> m_subdomains;
 
@@ -74,7 +76,8 @@ private:
 		int numIntervals;
 		double coefficientDischarge;		
 	};
-	std::vector<std::vector<Splitting>> m_splittingGrid;
+
+	std::array<std::vector<Splitting>, SIZE_NODE> m_splittingGrid;
 
 	struct Point2D
 	{
@@ -100,7 +103,7 @@ private:
 	std::vector<std::array<std::pair<double, double>, SIZE_NODE>> m_cubicSubdomains;
 	std::vector<int> m_numbersCurvedSubdomains;
 
-	void TransformDomains(void);
+	void TransformDomains();
 	bool QuadrilateralIsRectangle(std::array<Point2D, NUMBER_NODES_CUBE / 2> quadrilateral) const;
 	std::array<std::vector<double>, SIZE_NODE> FormCubicGrid() const;
 	std::array<std::vector<double>, SIZE_NODE> CalculationLimits—ubicGrid(void) const;
@@ -111,5 +114,3 @@ private:
 	//void FormBC(const std::array<std::vector<double>, SIZE_NODE>& xyz);
 	
 };
-
-#endif

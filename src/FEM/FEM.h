@@ -1,5 +1,4 @@
-#ifndef FEM_TETRAHEDRONS
-#define FEM_TETRAHEDRONS
+#pragma once
 #include "../SLAE/SparseSLAE.h"
 #include "../grid/Grid.h"
 #include "../vector/FiniteMatrixVector.h"
@@ -12,7 +11,7 @@ public:
 
 	FEM(const Grid& grid, std::function<double(const std::array<double, SIZE_NODE>& args)> u_g) : m_grid(grid), m_u_g(u_g){}
 	~FEM() {}
-	void ReadParameters();
+	bool ReadParametersJSON();
 	void CollectSLAE();
 	void Solve() { m_sparseSLAE.Solve(m_typeSolver); }
 	void ConsiderBoundaryConditions();
@@ -79,5 +78,3 @@ void FEM::AddFiniteMatrix(const FiniteMatrix<n>& lM, const std::array<int, n>& L
 		}
 	}
 }
-
-#endif 

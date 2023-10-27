@@ -1,5 +1,5 @@
-#ifndef FINITE_MATRIX_VECTOR
-#define FINITE_MATRIX_VECTOR
+#pragma once
+
 #include <array>
 #include <iostream>
 template <typename int n>
@@ -335,5 +335,3 @@ FiniteMatrix<n>& FiniteMatrix<n>::operator-=(const FiniteMatrix<n>& M)
 			(*this)[i][j] -= M[i][j];
 	return (*this);
 }
-
-#endif

@@ -1,9 +1,10 @@
-#ifndef FUNCTIONS
-#define FUNCTIONS
+#pragma once
 
 #include <vector>
 #include <functional>
 #include <array>
+#include <sstream>
+#include <fstream>
 #include "vector/FiniteMatrixVector.h"
 
 enum DIMENSIONS
@@ -161,7 +162,20 @@ inline FiniteVector<SIZE_NODE> vectorProduct(const FiniteVector<SIZE_NODE>& v1, 
 	return FiniteVector<SIZE_NODE>({ v1[1] * v2[2] - v1[2] * v2[1], v1[2] * v2[0] - v1[0] * v2[2] , v1[0] * v2[1] - v1[1] * v2[0] });
 }
 
-#endif
+inline std::string getFileString(const std::string& filePath)
+{
+	std::ifstream f;
+	f.open(filePath.c_str(), std::ios::in | std::ios::binary);
+	if (!f.is_open())
+	{
+		std::cerr << "Failed to open file: " << filePath << std::endl;
+		return std::string{};
+	}
+
+	std::stringstream buffer;
+	buffer << f.rdbuf();
+	return buffer.str();
+}
 
 
 

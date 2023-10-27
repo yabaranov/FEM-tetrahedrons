@@ -1,5 +1,5 @@
-#ifndef LOCAL_ASSEMBLY
-#define LOCAL_ASSEMBLY
+#pragma once
+
 #include "FEM.h"
 #include "../grid/Grid.h"
 #include "../vector/FiniteMatrixVector.h"
@@ -46,5 +46,3 @@ private:
 	FiniteVector<SIZE_EDGE> GetInterpolantU_betta(int edgeNum);
 
 };
-
-#endif
