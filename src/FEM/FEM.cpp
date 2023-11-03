@@ -150,12 +150,12 @@ std::ostream& FEM::Output(std::ostream& os) const
 		auto node = m_grid.GetNode(i);
 		for (int j = 0; j < node.size(); j++)
 			os << "|" << std::fixed << std::setw(7) << std::setprecision(3) << node[j];
-
+		
 		os << "|" << std::scientific << std::setw(22) << std::setprecision(DBL_DIG) << x[i] << "|"
 			<< std::scientific << std::setw(22) << std::setprecision(DBL_DIG) << m_u_g(node) << "|"
 			<< std::scientific << std::setw(22) << std::setprecision(DBL_DIG) << std::abs(x[i] - m_u_g(node)) << "|\n";
 
-		if (i % m_grid.GetgridPattern() == 0)
+		if (i % m_grid.GetGridNesting() == 0)
 		{
 			sum_1 += (x[i] - m_u_g(node)) * (x[i] - m_u_g(node));
 			sum_2 += m_u_g(node) * m_u_g(node);

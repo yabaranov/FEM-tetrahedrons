@@ -15,7 +15,6 @@ public:
 	void GetFiniteMatrixVectorBC_3(FiniteMatrix<SIZE_EDGE>& lM, FiniteVector<SIZE_EDGE>& lV, int edgeNum);
 
 private:
-	enum TYPE_BOUNDARY_CONDITION {SECOND, THIRD};
 
 	const FEM& m_fem;
 	const Grid& m_grid;
@@ -37,9 +36,9 @@ private:
 
 	double GetG(FiniteMatrix<SIZE_ELEMENT>& G, int elemNum);
 	FiniteMatrix<SIZE_ELEMENT> GetD(int elemNum);
-	double GetAreaEdge(TYPE_BOUNDARY_CONDITION typeBoundaryCondition, int edgeNum);
+	double GetAreaEdge(Grid::TYPE_BOUNDARY_CONDITION typeBoundaryCondition, int edgeNum);
 
-	FiniteVector<SIZE_NODE> Getn(TYPE_BOUNDARY_CONDITION typeBoundaryCondition, int edgeNum);
+	FiniteVector<SIZE_NODE> Getn(Grid::TYPE_BOUNDARY_CONDITION typeBoundaryCondition, int edgeNum);
 
 	FiniteVector<SIZE_ELEMENT> GetInterpolantF(int elemNum);
 	FiniteVector<SIZE_EDGE> GetInterpolantTetta(int edgeNum);

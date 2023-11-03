@@ -9,8 +9,8 @@ void Grid::CreateGrid()
 	TransformDomains();
 	std::array<std::vector<double>, SIZE_NODE> xyz = FormCubicGrid();
 	std::vector<int> missingNodes = FormNodes(xyz);
-	FormElements(xyz, missingNodes);
-	//FormBC(xyz);	
+	std::vector<int> missingElements = FormElements(xyz, missingNodes);
+	FormBC(xyz, missingNodes, missingElements);
 }
 
 void Grid::TransformDomains()
@@ -62,10 +62,15 @@ bool Grid::QuadrilateralIsRectangle(std::array<Point2D, NUMBER_NODES_CUBE / 2> q
 	return true;
 }
 
-std::array<std::vector<double>, SIZE_NODE> Grid::FormCubicGrid() const
+std::array<std::vector<double>, SIZE_NODE> Grid::FormCubicGrid() 
 {	
 	//âû÷èñëåíèå ëèìèòîâ ñåòêè
-	std::array<std::vector<double>, SIZE_NODE> m_limitsÑubicGrid = CalculationLimitsÑubicGrid();
+	std::array<std::vector<double>, SIZE_NODE> limitsÑubicGrid = CalculationLimitsÑubicGrid();
+
+	//êîððåêöèÿ èíòåðâàëîâ ðàçáèåíèÿ ñ ó÷åòîì âëîæåííîñòè ñåòêè
+	for (int k = 0; k < m_splittingGrid.size(); k++)
+		for (int i = 0; i < m_splittingGrid[k].size(); i++)
+			m_splittingGrid[k][i].numIntervals *= m_gridNesting;
 
 	// ïîñòðîåíèå êóáè÷åñêîé ñåòêè
 	std::array<std::vector<double>, SIZE_NODE> xyz;
@@ -76,29 +81,29 @@ std::array<std::vector<double>, SIZE_NODE> Grid::FormCubicGrid() const
 		{
 			double b1 = 1.0;
 			if (m_splittingGrid[k][i].coefficientDischarge != 1)
-				b1 = (m_limitsÑubicGrid[k][i + 1] - m_limitsÑubicGrid[k][i]) *
-				(1 - m_splittingGrid[k][i].coefficientDischarge) / (1 - pow(m_splittingGrid[k][i].coefficientDischarge, m_gridNesting * m_splittingGrid[k][i].numIntervals));
+				b1 = (limitsÑubicGrid[k][i + 1] - limitsÑubicGrid[k][i]) *
+				(1 - m_splittingGrid[k][i].coefficientDischarge) / (1 - pow(m_splittingGrid[k][i].coefficientDischarge, m_splittingGrid[k][i].numIntervals));
 			else
-				b1 = (m_limitsÑubicGrid[k][i + 1] - m_limitsÑubicGrid[k][i]) / (m_gridNesting * m_splittingGrid[k][i].numIntervals);
+				b1 = (limitsÑubicGrid[k][i + 1] - limitsÑubicGrid[k][i]) / (m_splittingGrid[k][i].numIntervals);
 
-			xyz[k].push_back(m_limitsÑubicGrid[k][i]);
+			xyz[k].push_back(limitsÑubicGrid[k][i]);
 			double degree = 1;
-			for (int j = 0; j < m_gridNesting * m_splittingGrid[k][i].numIntervals - 1; j++)
+			for (int j = 0; j < m_splittingGrid[k][i].numIntervals - 1; j++)
 			{
 				xyz[k].push_back(xyz[k].back() + b1 * degree);
 				degree *= m_splittingGrid[k][i].coefficientDischarge;
 			}			
 		}
 
-		xyz[k].push_back(m_limitsÑubicGrid[k][m_splittingGrid[k].size()]);
+		xyz[k].push_back(limitsÑubicGrid[k][m_splittingGrid[k].size()]);
 	}
 		
 	return xyz;
 }
 
-std::array<std::vector<double>, SIZE_NODE> Grid::CalculationLimitsÑubicGrid(void) const
+std::array<std::vector<double>, SIZE_NODE> Grid::CalculationLimitsÑubicGrid() const
 {
-	std::array<std::vector<double>, SIZE_NODE> m_limitsÑubicGrid;
+	std::array<std::vector<double>, SIZE_NODE> limitsÑubicGrid;
 
 	for (int i = 0; i < m_supportNodes[0].size(); i++)
 	{
@@ -109,7 +114,7 @@ std::array<std::vector<double>, SIZE_NODE> Grid::CalculationLimitsÑubicGrid(void
 				max = std::abs(m_supportNodes[j][i].x);
 				index = j;
 			}
-		m_limitsÑubicGrid[0].push_back(m_supportNodes[index][i].x);
+		limitsÑubicGrid[0].push_back(m_supportNodes[index][i].x);
 	}
 
 	for (int i = 0; i < m_supportNodes.size(); i++)
@@ -122,12 +127,12 @@ std::array<std::vector<double>, SIZE_NODE> Grid::CalculationLimitsÑubicGrid(void
 				index = j;
 			}
 
-		m_limitsÑubicGrid[1].push_back(m_supportNodes[i][index].y);
+		limitsÑubicGrid[1].push_back(m_supportNodes[i][index].y);
 	}
 
-	m_limitsÑubicGrid[2] = m_height;
+	limitsÑubicGrid[2] = m_height;
 
-	return m_limitsÑubicGrid;
+	return limitsÑubicGrid;
 }
 
 std::pair<bool, int> Grid::InDomain(const std::array<double, SIZE_NODE>& node) const
@@ -177,8 +182,11 @@ std::vector<int> Grid::FormNodes(const std::array<std::vector<double>, SIZE_NODE
 	return missingNodes;
 }
 				
-void Grid::FormElements(const std::array<std::vector<double>, SIZE_NODE>& xyz, std::vector<int> missingNodes)
+std::vector<int> Grid::FormElements(const std::array<std::vector<double>, SIZE_NODE>& xyz, std::vector<int> missingNodes)
 {
+	std::vector<int> missingElements;
+	int numberMissingElements = 0;
+
 	auto&& [x, y, z] = xyz;
 
 	for (int k = 0; k < z.size() - 1; k++)
@@ -198,12 +206,12 @@ void Grid::FormElements(const std::array<std::vector<double>, SIZE_NODE>& xyz, s
 				{ (x[i] + x[i + 1]) / 2.0, (y[j] + y[j + 1]) / 2.0, (z[k] + z[k + 1]) / 2.0 });
 
 				//ðàçáèåíèå ïîïàâøåãî â ðàñ÷¸òíóþ îáëàñòü êóáà íà òåòðàýäðû
-				std::array<int, NUMBER_NODES_CUBE> v =
+				std::array<int, NUMBER_NODES_CUBE> vCube =
 				{
 					kxy_0 + jx_0 + i,
 					kxy_0 + jx_0 + i + 1,
 					kxy_0 + jx_1 + i,
-					kxy_0 + jx_1 + i + 1 ,
+					kxy_0 + jx_1 + i + 1,
 					kxy_1 + jx_0 + i,
 					kxy_1 + jx_0 + i + 1,
 					kxy_1 + jx_1 + i,
@@ -211,10 +219,9 @@ void Grid::FormElements(const std::array<std::vector<double>, SIZE_NODE>& xyz, s
 				};
 
 				//êîððåêöèÿ íîìåðîâ âåðøèí ñ ó÷¸òîì ïðîïóùåííûõ âåðøèí
-				for (int h = 0; h < v.size(); h++)				
-					v[h] -= missingNodes[v[h]];
+				for (int h = 0; h < vCube.size(); h++)
+					vCube[h] -= missingNodes[vCube[h]];
 				
-
 				if (insideDomain.first)
 				{
 					auto numFormula = m_subdomains[insideDomain.second].numberFormula;
@@ -222,315 +229,203 @@ void Grid::FormElements(const std::array<std::vector<double>, SIZE_NODE>& xyz, s
 					{
 						if ((i + j + k) % 2 == 0)
 						{
-							m_elements.push_back({ { v[0], v[1], v[3], v[5] }, numFormula });
-							m_elements.push_back({ { v[0], v[2], v[3], v[6] }, numFormula });
-							m_elements.push_back({ { v[3], v[5], v[6], v[7] }, numFormula });
-							m_elements.push_back({ { v[0], v[4], v[5], v[6] }, numFormula });
-							m_elements.push_back({ { v[0], v[3], v[5], v[6] }, numFormula });
+							m_elements.push_back({ { vCube[0], vCube[1], vCube[3], vCube[5] }, numFormula });
+							m_elements.push_back({ { vCube[0], vCube[2], vCube[3], vCube[6] }, numFormula });
+							m_elements.push_back({ { vCube[3], vCube[5], vCube[6], vCube[7] }, numFormula });
+							m_elements.push_back({ { vCube[0], vCube[4], vCube[5], vCube[6] }, numFormula });
+							m_elements.push_back({ { vCube[0], vCube[3], vCube[5], vCube[6] }, numFormula });
 						}
 						else
 						{
-							m_elements.push_back({ { v[0], v[1], v[2], v[4] }, numFormula });
-							m_elements.push_back({ { v[1], v[2], v[3], v[7] }, numFormula });
-							m_elements.push_back({ { v[2], v[4], v[6], v[7] }, numFormula });
-							m_elements.push_back({ { v[1], v[4], v[5], v[7] }, numFormula });
-							m_elements.push_back({ { v[1], v[2], v[4], v[7] }, numFormula });
+							m_elements.push_back({ { vCube[0], vCube[1], vCube[2], vCube[4] }, numFormula });
+							m_elements.push_back({ { vCube[1], vCube[2], vCube[3], vCube[7] }, numFormula });
+							m_elements.push_back({ { vCube[2], vCube[4], vCube[6], vCube[7] }, numFormula });
+							m_elements.push_back({ { vCube[1], vCube[4], vCube[5], vCube[7] }, numFormula });
+							m_elements.push_back({ { vCube[1], vCube[2], vCube[4], vCube[7] }, numFormula });
 						}
 					}
 					else
 					{
-						m_elements.push_back({{ v[0], v[1], v[2], v[6] }, numFormula });
-						m_elements.push_back({{ v[0], v[1], v[4], v[6] }, numFormula });
-						m_elements.push_back({{ v[1], v[4], v[5], v[6] }, numFormula });
-						m_elements.push_back({{ v[1], v[2], v[3], v[6] }, numFormula });
-						m_elements.push_back({{ v[1], v[3], v[6], v[7] }, numFormula });
-						m_elements.push_back({{ v[1], v[5], v[6], v[7] }, numFormula });
+						m_elements.push_back({{ vCube[0], vCube[1], vCube[2], vCube[6] }, numFormula });
+						m_elements.push_back({{ vCube[0], vCube[1], vCube[4], vCube[6] }, numFormula });
+						m_elements.push_back({{ vCube[1], vCube[4], vCube[5], vCube[6] }, numFormula });
+						m_elements.push_back({{ vCube[1], vCube[2], vCube[3], vCube[6] }, numFormula });
+						m_elements.push_back({{ vCube[1], vCube[3], vCube[6], vCube[7] }, numFormula });
+						m_elements.push_back({{ vCube[1], vCube[5], vCube[6], vCube[7] }, numFormula });
 					}
-				}											
+				}	
+				else
+					numberMissingElements++;
+				missingElements.push_back(numberMissingElements);
 			}
 		}
 	}
 
+	return missingElements;
+
 }
 
-//void Grid::FormBC(const std::array<std::vector<double>, SIZE_NODE>& xyz)
-//{
-//	auto&& [x, y, z] = xyz;
-//
-//	switch (m_boundaryConditions[0])
-//	{
-//	case 1:
-//		for (int k = 0; k < z.size(); k++)
-//			for (int i = 0; i < x.size(); i++)
-//				m_BC_1.push_back(k * x.size() * y.size() + i);
-//		break;
-//	case 2:
-//	case 3:
-//		std::vector<Grid::Edge>&BC = (m_boundaryConditions[0] == 2) ? m_BC_2 : m_BC_3;
-//		for (int k = 0; k < z.size() - 1; k++)
-//		{
-//			int kxy_0 = k * x.size() * y.size();
-//			int kxy_1 = (k + 1) * x.size() * y.size();
-//			for (int i = 0; i < x.size() - 1; i++)
-//			{
-//				std::array<int, 8> v =
-//				{
-//					kxy_0 + i,
-//					kxy_0 + i + 1,
-//					kxy_0 + x.size() + i,
-//					kxy_0 + x.size() + i + 1 ,
-//					kxy_1 + i,
-//					kxy_1 + i + 1,
-//					kxy_1 + x.size() + i,
-//					kxy_1 + x.size() + i + 1
-//				};
-//				
-//				if ((i + k) % 2 == 0)
-//				{
-//					BC.push_back({ {v[0], v[4], v[5]}, 5 * (k * (x.size() - 1) * (y.size() - 1) + i) + 3 });
-//					BC.push_back({ {v[0], v[1], v[5]}, 5 * (k * (x.size() - 1) * (y.size() - 1) + i) + 0 });
-//				}
-//				else
-//				{
-//					BC.push_back({ {v[0], v[1], v[4]}, 5 * (k * (x.size() - 1) * (y.size() - 1) + i) + 0 });
-//					BC.push_back({ {v[1], v[4], v[5]}, 5 * (k * (x.size() - 1) * (y.size() - 1) + i) + 3 });
-//				}				
-//			}
-//		}
-//		break;
-//	}
-//
-//	switch (m_boundaryConditions[1])
-//	{
-//	case 1:
-//		for (int k = 0; k < z.size(); k++)
-//			for (int i = 0; i < x.size(); i++)
-//				m_BC_1.push_back(k * x.size() * y.size() + (y.size() - 1) * x.size() + i);
-//		break;
-//	case 2:
-//	case 3:
-//		std::vector<Grid::Edge>&BC = (m_boundaryConditions[1] == 2) ? m_BC_2 : m_BC_3;
-//		for (int k = 0; k < z.size() - 1; k++)
-//		{
-//			int kxy_0 = k * x.size() * y.size();
-//			int kxy_1 = (k + 1) * x.size() * y.size();
-//
-//			for (int i = 0; i < x.size() - 1; i++)
-//			{
-//				std::array<int, 8> v =
-//				{
-//					kxy_0 + (y.size() - 2) * x.size() + i,
-//					kxy_0 + (y.size() - 2) * x.size() + i + 1,
-//					kxy_0 + (y.size() - 1) * x.size() + i,
-//					kxy_0 + (y.size() - 1) * x.size() + i + 1 ,
-//					kxy_1 + (y.size() - 2) * x.size() + i,
-//					kxy_1 + (y.size() - 2) * x.size() + i + 1,
-//					kxy_1 + (y.size() - 1) * x.size() + i,
-//					kxy_1 + (y.size() - 1) * x.size() + i + 1
-//				};
-//				
-//				if ((i + y.size() - 2 + k) % 2 == 0)
-//				{
-//					BC.push_back({ {v[2], v[3], v[6]}, 5 * (k * (x.size() - 1) * (y.size() - 1) + (y.size() - 2) * (x.size() - 1) + i) + 1 });
-//					BC.push_back({ {v[3], v[6], v[7]}, 5 * (k * (x.size() - 1) * (y.size() - 1) + (y.size() - 2) * (x.size() - 1) + i) + 2 });
-//				}
-//				else
-//				{
-//					BC.push_back({ {v[2], v[3], v[7]}, 5 * (k * (x.size() - 1) * (y.size() - 1) + (y.size() - 2) * (x.size() - 1) + i) + 1 });
-//					BC.push_back({ {v[2], v[6], v[7]}, 5 * (k * (x.size() - 1) * (y.size() - 1) + (y.size() - 2) * (x.size() - 1) + i) + 2 });
-//				}
-//				
-//			}
-//		}
-//
-//		break;
-//	}
-//
-//	switch (m_boundaryConditions[2])
-//	{
-//	case 1:
-//		for (int k = 0; k < z.size(); k++)
-//			for (int j = 0; j < y.size(); j++)
-//				m_BC_1.push_back(k * x.size() * y.size() + j * x.size());
-//		break;
-//	case 2:
-//	case 3:
-//		std::vector<Grid::Edge>&BC = (m_boundaryConditions[2] == 2) ? m_BC_2 : m_BC_3;
-//		for (int k = 0; k < z.size() - 1; k++)
-//		{
-//			int kxy_0 = k * x.size() * y.size();
-//			int kxy_1 = (k + 1) * x.size() * y.size();
-//
-//			for (int j = 0; j < y.size() - 1; j++)
-//			{
-//				int jx_0 = j * x.size();
-//				int jx_1 = (j + 1) * x.size();
-//				std::array<int, 8> v =
-//				{
-//					kxy_0 + jx_0,
-//					kxy_0 + jx_0 + 1,
-//					kxy_0 + jx_1,
-//					kxy_0 + jx_1 + 1 ,
-//					kxy_1 + jx_0,
-//					kxy_1 + jx_0 + 1,
-//					kxy_1 + jx_1,
-//					kxy_1 + jx_1 + 1
-//				};
-//				
-//				if ((j + k) % 2 == 0)
-//				{
-//					BC.push_back({ {v[0], v[4], v[6]}, 5 * (k * (x.size() - 1) * (y.size() - 1) + j * (x.size() - 1)) + 3 });
-//					BC.push_back({ {v[0], v[2], v[6]}, 5 * (k * (x.size() - 1) * (y.size() - 1) + j * (x.size() - 1)) + 1 });
-//				}
-//				else
-//				{
-//					BC.push_back({ {v[0], v[2], v[4]}, 5 * (k * (x.size() - 1) * (y.size() - 1) + j * (x.size() - 1)) + 0 });
-//					BC.push_back({ {v[2], v[4], v[6]}, 5 * (k * (x.size() - 1) * (y.size() - 1) + j * (x.size() - 1)) + 2 });
-//				}
-//				
-//			}
-//		}
-//		break;
-//	}
-//
-//	switch (m_boundaryConditions[3])
-//	{
-//	case 1:
-//		for (int k = 0; k < z.size(); k++)
-//			for (int j = 0; j < y.size(); j++)
-//				m_BC_1.push_back(k * x.size() * y.size() + j * x.size() + x.size() - 1);
-//		break;
-//	case 2:
-//	case 3:
-//		std::vector<Grid::Edge>&BC = (m_boundaryConditions[3] == 2) ? m_BC_2 : m_BC_3;
-//		for (int k = 0; k < z.size() - 1; k++)
-//		{
-//			int kxy_0 = k * x.size() * y.size();
-//			int kxy_1 = (k + 1) * x.size() * y.size();
-//
-//			for (int j = 0; j < y.size() - 1; j++)
-//			{
-//				int jx_0 = j * x.size();
-//				int jx_1 = (j + 1) * x.size();
-//
-//				std::array<int, 8> v =
-//				{
-//					kxy_0 + jx_0 + x.size() - 2,
-//					kxy_0 + jx_0 + x.size() - 1,
-//					kxy_0 + jx_1 + x.size() - 2,
-//					kxy_0 + jx_1 + x.size() - 1,
-//					kxy_1 + jx_0 + x.size() - 2,
-//					kxy_1 + jx_0 + x.size() - 1,
-//					kxy_1 + jx_1 + x.size() - 2,
-//					kxy_1 + jx_1 + x.size() - 1
-//				};
-//				
-//				if ((x.size() - 2 + j + k) % 2 == 0)
-//				{
-//					BC.push_back({ {v[1], v[3], v[5]}, 5 * (k * (x.size() - 1) * (y.size() - 1) + j * (x.size() - 1) + x.size() - 2) + 0 });
-//					BC.push_back({ {v[3], v[5], v[7]}, 5 * (k * (x.size() - 1) * (y.size() - 1) + j * (x.size() - 1) + x.size() - 2) + 2 });
-//				}
-//				else
-//				{
-//					BC.push_back({ {v[1], v[5], v[7]}, 5 * (k * (x.size() - 1) * (y.size() - 1) + j * (x.size() - 1) + x.size() - 2) + 3 });
-//					BC.push_back({ {v[1], v[3], v[7]}, 5 * (k * (x.size() - 1) * (y.size() - 1) + j * (x.size() - 1) + x.size() - 2) + 1 });
-//				}
-//				
-//			}
-//		}
-//		break;
-//	}
-//
-//	switch (m_boundaryConditions[4])
-//	{
-//	case 1:
-//		for (int j = 0; j < y.size(); j++)
-//			for (int i = 0; i < x.size(); i++)
-//				m_BC_1.push_back(j * x.size() + i);
-//		break;
-//	case 2:
-//	case 3:
-//		std::vector<Grid::Edge>&BC = (m_boundaryConditions[4] == 2) ? m_BC_2 : m_BC_3;
-//		for (int j = 0; j < y.size() - 1; j++)
-//		{
-//			int jx_0 = j * x.size();
-//			int jx_1 = (j + 1) * x.size();
-//
-//			for (int i = 0; i < x.size() - 1; i++)
-//			{
-//				std::array<int, 8> v =
-//				{
-//					jx_0 + i,
-//					jx_0 + i + 1,
-//					jx_1 + i,
-//					jx_1 + i + 1 ,
-//					x.size() * y.size() + jx_0 + i,
-//					x.size() * y.size() + jx_0 + i + 1,
-//					x.size() * y.size() + jx_1 + i,
-//					x.size() * y.size() + jx_1 + i + 1
-//				};
-//				
-//				if ((i + j) % 2 == 0)
-//				{
-//					BC.push_back({ {v[0], v[1], v[3]}, 5 * (j * (x.size() - 1) + i) + 0 });
-//					BC.push_back({ {v[0], v[2], v[3]}, 5 * (j * (x.size() - 1) + i) + 1 });
-//				}
-//				else
-//				{
-//					BC.push_back({ {v[0], v[1], v[2]}, 5 * (j * (x.size() - 1) + i) + 0 });
-//					BC.push_back({ {v[1], v[2], v[3]}, 5 * (j * (x.size() - 1) + i) + 1 });
-//				}
-//				
-//			}
-//		}
-//		break;
-//	}
-//
-//	switch (m_boundaryConditions[5])
-//	{
-//	case 1:
-//		for (int j = 0; j < y.size(); j++)
-//			for (int i = 0; i < x.size(); i++)
-//				m_BC_1.push_back((z.size() - 1) * x.size() * y.size() + j * x.size() + i);
-//		break;
-//	case 2:
-//	case 3:
-//		std::vector<Grid::Edge>&BC = (m_boundaryConditions[5] == 2) ? m_BC_2 : m_BC_3;
-//		for (int j = 0; j < y.size() - 1; j++)
-//		{
-//			int jx_0 = j * x.size();
-//			int jx_1 = (j + 1) * x.size();
-//
-//			for (int i = 0; i < x.size() - 1; i++)
-//			{
-//				std::array<int, 8> v =
-//				{
-//					(z.size() - 2) * x.size() * y.size() + jx_0 + i,
-//					(z.size() - 2) * x.size() * y.size() + jx_0 + i + 1,
-//					(z.size() - 2) * x.size() * y.size() + jx_1 + i,
-//					(z.size() - 2) * x.size() * y.size() + jx_1 + i + 1 ,
-//					(z.size() - 1) * x.size() * y.size() + jx_0 + i,
-//					(z.size() - 1) * x.size() * y.size() + jx_0 + i + 1,
-//					(z.size() - 1) * x.size() * y.size() + jx_1 + i,
-//					(z.size() - 1) * x.size() * y.size() + jx_1 + i + 1
-//				};
-//				
-//				if ((i + j + z.size() - 2) % 2 == 0)
-//				{
-//					BC.push_back({ {v[4], v[5], v[6]}, 5 * ((z.size() - 2) * (x.size() - 1) * (y.size() - 1) + j * (x.size() - 1) + i) + 3 });
-//					BC.push_back({ {v[5], v[6], v[7]}, 5 * ((z.size() - 2) * (x.size() - 1) * (y.size() - 1) + j * (x.size() - 1) + i) + 2 });
-//				}
-//				else
-//				{
-//					BC.push_back({ {v[4], v[5], v[7]}, 5 * ((z.size() - 2) * (x.size() - 1) * (y.size() - 1) + j * (x.size() - 1) + i) + 3 });
-//					BC.push_back({ {v[4], v[6], v[7]}, 5 * ((z.size() - 2) * (x.size() - 1) * (y.size() - 1) + j * (x.size() - 1) + i) + 2 });
-//				}
-//				
-//			}
-//		}
-//		break;
-//	}
-//}
+std::array<std::pair<int, int>, SIZE_NODE> Grid::CalculationLimitsEdge(const std::array<int, SIZE_SUBDOMAIN>& boundaries)
+{
+	std::array<std::pair<int, int>, SIZE_NODE> limitsEdge;
+
+	for (int i = 0; i < limitsEdge.size(); i++)
+	{
+		std::pair<int, int> limit = { 0, 0 };
+		for (int j = 0; j < boundaries[2 * i]; j++)
+			limit.first += m_splittingGrid[i][j].numIntervals;
+
+		for (int j = 0; j < boundaries[2 * i + 1]; j++)
+			limit.second += m_splittingGrid[i][j].numIntervals;
+
+		limitsEdge[i] = limit;
+	}
+
+	return limitsEdge;
+}
+
+void Grid::FormBC(const std::array<std::vector<double>, SIZE_NODE>& xyz, const std::vector<int>& missingNodes, const std::vector<int>& missingElements)
+{
+	auto&& [x, y, z] = xyz;
+
+	for (int h = 0; h < m_BC.size(); h++)
+	{
+		std::array<std::pair<int, int>, SIZE_NODE> limitsEdge = CalculationLimitsEdge(m_BC[h].boundaries);
+
+		switch (m_BC[h].typeBC)
+		{
+			case TYPE_BOUNDARY_CONDITION::FIRST:
+				
+				for (int k = limitsEdge[2].first; k <= limitsEdge[2].second; k++)
+					for (int j = limitsEdge[1].first; j <= limitsEdge[1].second; j++)
+						for (int i = limitsEdge[0].first; i <= limitsEdge[0].second; i++)
+						{
+							int number = k * x.size() * y.size() + j * x.size() + i;
+							//êîððåêöèÿ íîìåðîâ âåðøèí ñ ó÷¸òîì ïðîïóùåííûõ âåðøèí
+							number -= missingNodes[number];
+							m_BC_1.push_back(number);
+						}	
+				//óäàëåíèå äóáëèêàòîâ èç ìàññèâà ïåðâûõ êðàåâûõ(äóáëèêàòû ðàñïîëîæåíû íà ð¸áðàõ, ãäå ãðàíè ñîïðèêàñàþòñÿ)
+				removeDuplicates(m_BC_1);
+				break;
+
+			case TYPE_BOUNDARY_CONDITION::SECOND:
+			case TYPE_BOUNDARY_CONDITION::THIRD:
+				std::vector<Edge>& BC = (m_BC[h].typeBC == TYPE_BOUNDARY_CONDITION::SECOND) ? m_BC_2 : m_BC_3;
+
+				bool reducelimit = false;
+				int coordinateMatching = 0;
+				//êîððåêöèÿ ëèìèòîâ öèêëîâ
+				for (int i = 0; i < limitsEdge.size(); i++)
+					if (limitsEdge[i].first != limitsEdge[i].second)					
+						limitsEdge[i].second--;				
+					else
+					{
+						coordinateMatching = i;		
+
+						if (0 < limitsEdge[i].first && limitsEdge[i].first < xyz[i].size() - 1)
+						{
+							std::array<int, 3> temp{ 0,0,0 };
+							for (int j = 0; j < temp.size(); j++)
+								if (limitsEdge[j].first == limitsEdge[j].second)
+									temp[j]++;
+
+							if (!InDomain({ (x[limitsEdge[0].first + temp[0]] + x[limitsEdge[0].second + temp[0]]) / 2.0, (y[limitsEdge[1].first + temp[1]] + y[limitsEdge[1].second + temp[1]]) / 2.0, (z[limitsEdge[2].first + temp[2]] + z[limitsEdge[2].second + temp[2]]) / 2.0 }).first)							
+								reducelimit = true;
+						}
+						else if (limitsEdge[i].first == xyz[i].size() - 1)
+							reducelimit = true;
+						
+					}
+
+				for (int k = limitsEdge[2].first; k <= limitsEdge[2].second; k++)
+				{
+					int kxy_0 = k * x.size() * y.size();
+					int kxy_1 = (k + 1) * x.size() * y.size();
+
+					for (int j = limitsEdge[1].first; j <= limitsEdge[1].second; j++)
+					{
+						int jx_0 = j * x.size();
+						int jx_1 = (j + 1) * x.size();
+
+						for (int i = limitsEdge[0].first; i <= limitsEdge[0].second; i++)
+						{
+							std::array<int, NUMBER_NODES_CUBE / 2> vRect;
+							int elementOffset = k * (x.size() - 1) * (y.size() - 1) + j * (x.size() - 1) + i;
+							//âû÷èñëåíèå âåðøèí ïðÿìîóãîëüíèêà, êîòîðûé áóäåò ðàçáèò íà ãðàíè(òðåóãîëüíèêè)
+							switch (coordinateMatching)
+							{
+							case 0:
+								vRect = { kxy_0 + jx_0 + i, kxy_0 + jx_1 + i, kxy_1 + jx_0 + i, kxy_1 + jx_1 + i };
+								if(reducelimit) elementOffset = k * (x.size() - 1) * (y.size() - 1) + j * (x.size() - 1) + i - 1;								
+								break;
+							case 1:
+								vRect = { kxy_0 + jx_0 + i, kxy_0 + jx_0 + i + 1, kxy_1 + jx_0 + i, kxy_1 + jx_0 + i + 1 };
+								if (reducelimit) elementOffset = k * (x.size() - 1) * (y.size() - 1) + (j - 1) * (x.size() - 1) + i;								
+								break;
+							case 2:
+								vRect = { kxy_0 + jx_0 + i, kxy_0 + jx_0 + i + 1, kxy_0 + jx_1 + i, kxy_0 + jx_1 + i + 1 };
+								if (reducelimit) elementOffset = (k - 1) * (x.size() - 1) * (y.size() - 1) + j * (x.size() - 1) + i;
+								break;
+							}
+
+							//êîððåêöèÿ íîìåðîâ âåðøèí ñ ó÷¸òîì ïðîïóùåííûõ âåðøèí
+							for (int l = 0; l < vRect.size(); l++)
+								vRect[l] -= missingNodes[vRect[l]];
+							
+							//êîððåêöèÿ íîìåðà ýëåìåíòà-êóáà ñ ó÷¸òîì ïðîïóùåííûõ ýëåìåíòîâ-êóáîâ
+							elementOffset -= missingElements[elementOffset];
+							//êàæäûé êóá áûë ðàçáèò íà òåòðàýäðû
+							elementOffset *= m_gridPattern;
+						
+							std::array<int, SIZE_EDGE> vertexes;
+							if (m_gridPattern == GRID_PATTERN::FIVE)
+							{
+								if ((i + j + k) % 2 == 0)
+								{
+									vertexes = { vRect[0], vRect[1], vRect[3] };
+									BC.push_back({ vertexes, SearchElement(vertexes, elementOffset, elementOffset + m_gridPattern - 1) });
+									vertexes = { vRect[0], vRect[2], vRect[3] };
+									BC.push_back({ vertexes, SearchElement(vertexes, elementOffset, elementOffset + m_gridPattern - 1) });
+								}							
+								else
+								{
+									vertexes = { vRect[0], vRect[1], vRect[2] };
+									BC.push_back({ vertexes, SearchElement(vertexes, elementOffset, elementOffset + m_gridPattern - 1) });
+									vertexes = { vRect[1], vRect[2], vRect[3] };
+									BC.push_back({ vertexes, SearchElement(vertexes, elementOffset, elementOffset + m_gridPattern - 1) });
+								}
+							}
+							else
+							{
+								vertexes = { vRect[0], vRect[1], vRect[2] };
+								BC.push_back({ vertexes, SearchElement(vertexes, elementOffset, elementOffset + m_gridPattern - 1) });
+								vertexes = { vRect[1], vRect[2], vRect[3] };
+								BC.push_back({ vertexes, SearchElement(vertexes, elementOffset, elementOffset + m_gridPattern - 1) });
+							}
+
+						}
+					}
+				}
+												
+				break;
+		}
+	}
+	
+}
+
+int Grid::SearchElement(const std::array<int, SIZE_EDGE>& vertexes, int l, int r)
+{
+	for (int i = l; i <= r; i++)
+	{
+		bool edgeInElement = true;
+		for (int j = 0; j < vertexes.size(); j++)		
+			if (binarySearch(m_elements[i].vertexes, vertexes[j], 0, m_elements[i].vertexes.size() - 1) == -1)
+				edgeInElement = false;		
+		if (edgeInElement) return i;
+	}
+	return -1;
+}
 
 bool Grid::ReadGridJSON()
 {
@@ -582,7 +477,7 @@ bool Grid::ReadGridJSON()
 			const auto subdomainsArrayBoundaries = subdomainsArray[i]["boundaries"].GetArray();
 			std::array<int, SIZE_SUBDOMAIN> boundaries;
 			for (size_t j = 0; j < subdomainsArrayBoundaries.Size(); j++)
-				boundaries[j] = subdomainsArrayBoundaries[j].GetUint();
+				boundaries[j] = subdomainsArrayBoundaries[j].GetInt();
 
 			std::array<int, SIZE_SUBDOMAIN / 2> rlimits{ m_supportNodes[0].size(), m_supportNodes.size(), m_height.size() };
 			for (size_t j = 0; j < boundaries.size(); j++)
@@ -665,11 +560,10 @@ bool Grid::ReadGridJSON()
 				std::cerr << "Error type boundary condition in boundaryConditions[" + std::to_string(i) + "]!"; return false;
 			}
 
-			int numberFormula = boundaryConditionsArray[i]["numberFormula"].GetUint();
 			const auto boundaryConditionsArrayBoundaries = boundaryConditionsArray[i]["boundaries"].GetArray();
 			std::array<int, SIZE_SUBDOMAIN> boundaries;
 			for (size_t j = 0; j < boundaryConditionsArrayBoundaries.Size(); j++)
-				boundaries[j] = boundaryConditionsArrayBoundaries[j].GetUint();
+				boundaries[j] = boundaryConditionsArrayBoundaries[j].GetInt();
 
 			std::array<int, SIZE_SUBDOMAIN / 2> rlimits{ m_supportNodes[0].size(), m_supportNodes.size(), m_height.size() };
 			for (size_t j = 0; j < boundaries.size(); j++)
@@ -679,7 +573,7 @@ bool Grid::ReadGridJSON()
 					return false;
 				}
 
-			m_BC[i] = BoundaryCondition{ typeBC,  numberFormula, boundaries };
+			m_BC[i] = BoundaryCondition{ typeBC, boundaries };
 		}
 	}
 	return true;

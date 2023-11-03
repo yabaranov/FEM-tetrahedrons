@@ -5,6 +5,7 @@
 #include <array>
 #include <sstream>
 #include <fstream>
+#include <unordered_set>
 #include "vector/FiniteMatrixVector.h"
 
 enum DIMENSIONS
@@ -175,6 +176,17 @@ inline std::string getFileString(const std::string& filePath)
 	std::stringstream buffer;
 	buffer << f.rdbuf();
 	return buffer.str();
+}
+
+inline void removeDuplicates(std::vector<int>& v)
+{
+	std::unordered_set<int> s;
+	auto end = std::remove_if(v.begin(), v.end(),
+		[&s](int const& i) {
+			return !s.insert(i).second;
+		});
+
+	v.erase(end, v.end());
 }
 
 

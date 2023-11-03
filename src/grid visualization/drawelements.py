@@ -52,7 +52,7 @@ with open('../../res/output/elements.txt', 'r') as f:
 fig = plt.figure()
 ax = fig.add_subplot(projection='3d')
 
-ax.scatter(x, y, z)
+#ax.scatter(x, y, z)
 
 axfreq = plt.axes([0.25, 0.1, 0.65, 0.03])
 elem_slider = Slider(
@@ -67,9 +67,9 @@ elem_slider = Slider(
 
 elem_slider.on_changed(partial(set_slider,elem_slider))
 
-for elem in elements:
+for j in range(len(elements)):
     tmp = []
-    for ind in elem:
+    for ind in elements[j]:
         tmp.append([ x[ind], y[ind], z[ind] ])
     v = np.array(tmp)
     verts = []
@@ -77,7 +77,7 @@ for elem in elements:
         verts.append([ v[i], v[(i + 1) % 4], v[(i + 2) % 4] ])
 
     cmap = get_cmap(len(elements))
-    ax.add_collection3d(Poly3DCollection(verts, linewidths=1, facecolors='grey', edgecolors='grey', alpha=.125))
+    ax.add_collection3d(Poly3DCollection(verts, linewidths=1, facecolors=cmap(j), edgecolors='black', alpha=0.25))
 
 ax.scatter(x, y, z)
 draw(0)

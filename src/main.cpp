@@ -11,7 +11,7 @@ int main()
 	grid.WriteGrid();
 
 	FEM fem(grid, [](const std::array<double, SIZE_NODE>& args)
-		{auto&& [x, y, z] = args; return x + y + z;	});
+		{auto&& [x, y, z] = args; return x+y+z;	});
 	
 	fem.ReadParametersJSON();
 	fem.CollectSLAE();

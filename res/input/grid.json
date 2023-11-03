@@ -27,21 +27,21 @@
 		"splittingGrid":
 		[
 			[
-				{"numIntervals": 2, "coefficientDischarge": 1.2}, 
-				{"numIntervals": 2, "coefficientDischarge": 1.2}, 
-				{"numIntervals": 2, "coefficientDischarge": 1.2}, 
-				{"numIntervals": 2, "coefficientDischarge": 1.2}, 
-				{"numIntervals": 2, "coefficientDischarge": 1.2}
+				{"numIntervals": 2, "coefficientDischarge": 0.8}, 
+				{"numIntervals": 2, "coefficientDischarge": 0.8}, 
+				{"numIntervals": 2, "coefficientDischarge": 0.8}, 
+				{"numIntervals": 2, "coefficientDischarge": 0.8}, 
+				{"numIntervals": 2, "coefficientDischarge": 0.8}
 			],
 			
 			[
-				{"numIntervals": 2, "coefficientDischarge": 1.2}, 
-				{"numIntervals": 2, "coefficientDischarge": 1.2}
+				{"numIntervals": 2, "coefficientDischarge": 0.8}, 
+				{"numIntervals": 2, "coefficientDischarge": 0.8}
 			],
 			[
-				{"numIntervals": 2, "coefficientDischarge": 1.2}, 
-				{"numIntervals": 2, "coefficientDischarge": 1.2}, 
-				{"numIntervals": 2, "coefficientDischarge": 1.2}
+				{"numIntervals": 2, "coefficientDischarge": 0.8}, 
+				{"numIntervals": 2, "coefficientDischarge": 0.8}, 
+				{"numIntervals": 2, "coefficientDischarge": 0.8}
 			]
 		],
 		
@@ -52,24 +52,29 @@
 	
 	"boundaryConditions":
 	[
-		{"typeBC": 1, "numberFormula": 0, "boundaries": [0, 0, 0, 2, 0, 3]},
-		{"typeBC": 1, "numberFormula": 0, "boundaries": [4, 4, 0, 1, 2, 3]},
-		{"typeBC": 1, "numberFormula": 0, "boundaries": [5, 5, 0, 2, 0, 3]},
-		{"typeBC": 1, "numberFormula": 0, "boundaries": [1, 1, 0, 1, 2, 3]},
-		{"typeBC": 1, "numberFormula": 0, "boundaries": [0, 1, 0, 0, 0, 3]},
-		{"typeBC": 1, "numberFormula": 0, "boundaries": [1, 2, 0, 0, 0, 2]},
-		{"typeBC": 1, "numberFormula": 0, "boundaries": [2, 3, 0, 0, 0, 1]},
-		{"typeBC": 1, "numberFormula": 0, "boundaries": [3, 4, 0, 0, 0, 2]},
-		{"typeBC": 1, "numberFormula": 0, "boundaries": [4, 5, 0, 0, 0, 3]},
-		{"typeBC": 1, "numberFormula": 0, "boundaries": [1, 2, 1, 1, 2, 3]},
-		{"typeBC": 1, "numberFormula": 0, "boundaries": [2, 3, 1, 1, 1, 3]}, 
-		{"typeBC": 1, "numberFormula": 0, "boundaries": [3, 4, 1, 1, 2, 3]},
-		{"typeBC": 1, "numberFormula": 0, "boundaries": [0, 5, 0, 2, 0, 0]},
-		{"typeBC": 1, "numberFormula": 0, "boundaries": [0, 1, 0, 2, 3, 3]},
-		{"typeBC": 1, "numberFormula": 0, "boundaries": [1, 4, 1, 2, 3, 3]},
-		{"typeBC": 1, "numberFormula": 0, "boundaries": [4, 5, 0, 2, 3, 3]},
-		{"typeBC": 1, "numberFormula": 0, "boundaries": [1, 2, 0, 1, 2, 2]},
-		{"typeBC": 1, "numberFormula": 0, "boundaries": [2, 3, 0, 1, 1, 1]},
-		{"typeBC": 1, "numberFormula": 0, "boundaries": [3, 4, 0, 1, 2, 2]}
+		{"typeBC": 2, "boundaries": [0, 0, 0, 2, 0, 3]},
+		{"typeBC": 2, "boundaries": [4, 4, 0, 1, 2, 3]},
+		{"typeBC": 2, "boundaries": [3, 3, 0, 1, 1, 2]},		
+		{"typeBC": 2, "boundaries": [5, 5, 0, 2, 0, 3]},
+		{"typeBC": 2, "boundaries": [1, 1, 0, 1, 2, 3]},
+		{"typeBC": 2, "boundaries": [2, 2, 0, 1, 1, 2]},
+		
+		{"typeBC": 2, "boundaries": [0, 1, 0, 0, 0, 3]},		
+		{"typeBC": 2, "boundaries": [1, 2, 0, 0, 0, 2]},
+		{"typeBC": 2, "boundaries": [2, 3, 0, 0, 0, 1]},
+		{"typeBC": 2, "boundaries": [3, 4, 0, 0, 0, 2]},
+		{"typeBC": 2, "boundaries": [4, 5, 0, 0, 0, 3]},
+		{"typeBC": 2, "boundaries": [1, 2, 1, 1, 2, 3]},
+		{"typeBC": 2, "boundaries": [2, 3, 1, 1, 1, 3]}, 
+		{"typeBC": 2, "boundaries": [3, 4, 1, 1, 2, 3]},
+		{"typeBC": 2, "boundaries": [0, 5, 2, 2, 0, 3]},	
+		
+		{"typeBC": 2, "boundaries": [0, 5, 0, 2, 0, 0]},
+		{"typeBC": 2, "boundaries": [0, 1, 0, 2, 3, 3]},		
+		{"typeBC": 2, "boundaries": [1, 4, 1, 2, 3, 3]},		
+		{"typeBC": 2, "boundaries": [4, 5, 0, 2, 3, 3]},
+		{"typeBC": 2, "boundaries": [1, 2, 0, 1, 2, 2]},
+		{"typeBC": 2, "boundaries": [2, 3, 0, 1, 1, 1]},
+		{"typeBC": 2, "boundaries": [3, 4, 0, 1, 2, 2]}
 	]		
 }

@@ -3,14 +3,14 @@
 
 void LocalAssembly::GetFiniteVectorBC_2(FiniteVector<SIZE_EDGE>& lV, int edgeNum)
 {
-	double areaEdge = GetAreaEdge(TYPE_BOUNDARY_CONDITION::SECOND, edgeNum);
+	double areaEdge = GetAreaEdge(Grid::TYPE_BOUNDARY_CONDITION::SECOND, edgeNum);
 	FiniteVector<SIZE_EDGE> tetta = GetInterpolantTetta(edgeNum);	
 	lV = areaEdge / 12 * m_A * tetta;
 }
 
 void LocalAssembly::GetFiniteMatrixVectorBC_3(FiniteMatrix<SIZE_EDGE>& lM, FiniteVector<SIZE_EDGE>& lV, int edgeNum)
 {
-	double areaEdge = GetAreaEdge(TYPE_BOUNDARY_CONDITION::THIRD, edgeNum);
+	double areaEdge = GetAreaEdge(Grid::TYPE_BOUNDARY_CONDITION::THIRD, edgeNum);
 	lM = m_fem.Betta(m_grid.GetElement(m_grid.GetEdgeBC_3(edgeNum).elemNum).numberFormula) * areaEdge / 12 * m_A;
 	FiniteVector<SIZE_EDGE> u_betta = GetInterpolantU_betta(edgeNum);	
 	lV = lM * u_betta;
@@ -30,7 +30,7 @@ void LocalAssembly::GetFiniteMatrixVectorElement(FiniteMatrix<SIZE_ELEMENT>& lM,
 
 double LocalAssembly::GetG(FiniteMatrix<SIZE_ELEMENT>& G, int elemNum)
 {
-	FiniteMatrix<SIZE_ELEMENT> D = GetD(elemNum);;
+	FiniteMatrix<SIZE_ELEMENT> D = GetD(elemNum);
 	
 	double detD = std::abs(D.InverseMatrix());
 
@@ -55,7 +55,7 @@ FiniteMatrix<SIZE_ELEMENT> LocalAssembly::GetD(int elemNum)
 
 FiniteVector<SIZE_EDGE> LocalAssembly::GetInterpolantTetta(int edgeNum)
 {
-	FiniteVector<SIZE_NODE> n = Getn(TYPE_BOUNDARY_CONDITION::SECOND, edgeNum);
+	FiniteVector<SIZE_NODE> n = Getn(Grid::TYPE_BOUNDARY_CONDITION::SECOND, edgeNum);
 	FiniteVector<SIZE_EDGE> tetta;
 	for (int j = 0; j < tetta.size(); j++)	
 		tetta[j] = m_fem.NumericalTetta(n, edgeNum, j);
@@ -64,7 +64,7 @@ FiniteVector<SIZE_EDGE> LocalAssembly::GetInterpolantTetta(int edgeNum)
 
 FiniteVector<SIZE_EDGE> LocalAssembly::GetInterpolantU_betta(int edgeNum)
 {
-	FiniteVector<SIZE_NODE> n = Getn(TYPE_BOUNDARY_CONDITION::THIRD, edgeNum);
+	FiniteVector<SIZE_NODE> n = Getn(Grid::TYPE_BOUNDARY_CONDITION::THIRD, edgeNum);
 	FiniteVector<SIZE_EDGE> u_betta;
 	for (int j = 0; j < u_betta.size(); j++)
 		u_betta[j] = m_fem.NumericalU_betta(n, edgeNum, j);
@@ -79,9 +79,9 @@ FiniteVector<SIZE_ELEMENT> LocalAssembly::GetInterpolantF(int elemNum)
 	return f;
 }
 
-double LocalAssembly::GetAreaEdge(TYPE_BOUNDARY_CONDITION typeBoundaryCondition, int edgeNum)
+double LocalAssembly::GetAreaEdge(Grid::TYPE_BOUNDARY_CONDITION typeBoundaryCondition, int edgeNum)
 {
-	const Grid::Edge& BC = (typeBoundaryCondition == TYPE_BOUNDARY_CONDITION::SECOND) ? m_grid.GetEdgeBC_2(edgeNum) : m_grid.GetEdgeBC_3(edgeNum);
+	const Grid::Edge& BC = (typeBoundaryCondition == Grid::TYPE_BOUNDARY_CONDITION::SECOND) ? m_grid.GetEdgeBC_2(edgeNum) : m_grid.GetEdgeBC_3(edgeNum);
 
 	FiniteMatrix<SIZE_NODE> coords;
 
@@ -96,9 +96,9 @@ double LocalAssembly::GetAreaEdge(TYPE_BOUNDARY_CONDITION typeBoundaryCondition,
 	return std::sqrt(px * px + py * py + pz * pz) / 2;
 }
 
-FiniteVector<SIZE_NODE> LocalAssembly::Getn(TYPE_BOUNDARY_CONDITION typeBoundaryCondition, int edgeNum)
+FiniteVector<SIZE_NODE> LocalAssembly::Getn(Grid::TYPE_BOUNDARY_CONDITION typeBoundaryCondition, int edgeNum)
 {
-	const Grid::Edge& BC = (typeBoundaryCondition == TYPE_BOUNDARY_CONDITION::SECOND) ? m_grid.GetEdgeBC_2(edgeNum) : m_grid.GetEdgeBC_3(edgeNum);
+	const Grid::Edge& BC = (typeBoundaryCondition == Grid::TYPE_BOUNDARY_CONDITION::SECOND) ? m_grid.GetEdgeBC_2(edgeNum) : m_grid.GetEdgeBC_3(edgeNum);
 
 	FiniteVector<SIZE_NODE> n = vectorProduct
 	(
