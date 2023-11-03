@@ -3,7 +3,7 @@
 #include <vector>
 #include <array>
 #include <functional>
-#include "../functions.h"
+#include "../dimensions.h"
 
 class TransformCubeToHexahedron
 {

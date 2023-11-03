@@ -1,0 +1,9 @@
+#pragma once
+enum DIMENSIONS
+{
+	SIZE_NODE = 3,
+	SIZE_ELEMENT = 4,
+	SIZE_SUBDOMAIN = 6,
+	SIZE_EDGE = 3,
+	NUMBER_NODES_CUBE = 8
+};

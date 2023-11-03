@@ -3,7 +3,7 @@
 #include "../grid/Grid.h"
 #include "../vector/FiniteMatrixVector.h"
 #include "../functions.h"
-
+#include "../dimensions.h"
 
 class FEM
 {
@@ -28,7 +28,7 @@ public:
 
 private:
 
-	SparseSLAE::TYPE_SOLVER m_typeSolver = SparseSLAE::TYPE_SOLVER::BÑGSTABLU;
+	SparseSLAE::TYPE_SOLVER m_typeSolver = SparseSLAE::TYPE_SOLVER::BCGSTABLU;
 	SparseSLAE m_sparseSLAE;
 	const Grid& m_grid;
 	

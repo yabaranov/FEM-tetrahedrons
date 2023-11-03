@@ -1,9 +1,10 @@
-#include "FEM.h"
-#include "LocalAssembly.h"
 #include <iomanip>
 #include <rapidjson/document.h>
 #include <rapidjson/error/en.h>
 #include <fstream>
+#include "FEM.h"
+#include "LocalAssembly.h"
+#include "differentiation.h"
 
 bool FEM::ReadParametersJSON()
 {
@@ -50,6 +51,24 @@ bool FEM::ReadParametersJSON()
 		m_bettas.resize(bettasArray.Size());
 		for (size_t i = 0; i < bettasArray.Size(); i++)
 			m_bettas[i] = bettasArray[i].GetDouble();
+	}
+
+	auto typeSolverIt = document.FindMember("typeSolver");
+	if (typeSolverIt != document.MemberEnd())
+	{
+		std::string typeSolver = typeSolverIt->value.GetString();
+
+		if (typeSolver == "BCGSTABLU")
+			m_typeSolver = SparseSLAE::TYPE_SOLVER::BCGSTABLU;
+		else if(typeSolver == "LOSLU")
+			m_typeSolver = SparseSLAE::TYPE_SOLVER::LOSLU;
+		else if(typeSolver == "LU")
+			m_typeSolver = SparseSLAE::TYPE_SOLVER::LU;
+		else
+		{
+			std::cerr << "Error type solver!"; 
+			return false;
+		}
 	}
 
 	return true;

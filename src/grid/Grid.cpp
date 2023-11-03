@@ -3,9 +3,15 @@
 #include <rapidjson/error/en.h>
 #include "Grid.h"
 #include "TransformCubeToHexagon.h"
+#include "../functions.h"
 
 void Grid::CreateGrid()
 {
+	//коррекция интервалов разбиения с учетом вложенности сетки
+	for (int k = 0; k < m_splittingGrid.size(); k++)
+		for (int i = 0; i < m_splittingGrid[k].size(); i++)
+			m_splittingGrid[k][i].numIntervals *= m_gridNesting;
+
 	TransformDomains();
 	std::array<std::vector<double>, SIZE_NODE> xyz = FormCubicGrid();
 	std::vector<int> missingNodes = FormNodes(xyz);
@@ -62,15 +68,10 @@ bool Grid::QuadrilateralIsRectangle(std::array<Point2D, NUMBER_NODES_CUBE / 2> q
 	return true;
 }
 
-std::array<std::vector<double>, SIZE_NODE> Grid::FormCubicGrid() 
+std::array<std::vector<double>, SIZE_NODE> Grid::FormCubicGrid() const
 {	
 	//вычисление лимитов сетки
 	std::array<std::vector<double>, SIZE_NODE> limitsСubicGrid = CalculationLimitsСubicGrid();
-
-	//коррекция интервалов разбиения с учетом вложенности сетки
-	for (int k = 0; k < m_splittingGrid.size(); k++)
-		for (int i = 0; i < m_splittingGrid[k].size(); i++)
-			m_splittingGrid[k][i].numIntervals *= m_gridNesting;
 
 	// построение кубической сетки
 	std::array<std::vector<double>, SIZE_NODE> xyz;
@@ -300,7 +301,7 @@ void Grid::FormBC(const std::array<std::vector<double>, SIZE_NODE>& xyz, const s
 					for (int j = limitsEdge[1].first; j <= limitsEdge[1].second; j++)
 						for (int i = limitsEdge[0].first; i <= limitsEdge[0].second; i++)
 						{
-							int number = k * x.size() * y.size() + j * x.size() + i;
+								int number = k * x.size() * y.size() + j * x.size() + i;
 							//коррекция номеров вершин с учётом пропущенных вершин
 							number -= missingNodes[number];
 							m_BC_1.push_back(number);
@@ -322,20 +323,15 @@ void Grid::FormBC(const std::array<std::vector<double>, SIZE_NODE>& xyz, const s
 					else
 					{
 						coordinateMatching = i;		
-
-						if (0 < limitsEdge[i].first && limitsEdge[i].first < xyz[i].size() - 1)
+						if (0 < limitsEdge[i].first)
 						{
-							std::array<int, 3> temp{ 0,0,0 };
-							for (int j = 0; j < temp.size(); j++)
-								if (limitsEdge[j].first == limitsEdge[j].second)
-									temp[j]++;
-
-							if (!InDomain({ (x[limitsEdge[0].first + temp[0]] + x[limitsEdge[0].second + temp[0]]) / 2.0, (y[limitsEdge[1].first + temp[1]] + y[limitsEdge[1].second + temp[1]]) / 2.0, (z[limitsEdge[2].first + temp[2]] + z[limitsEdge[2].second + temp[2]]) / 2.0 }).first)							
+							std::array<double, SIZE_NODE> leftNode{0, 0, 0};
+							leftNode[i]--;
+							for (int j = 0; j < leftNode.size(); j++)
+								leftNode[j] = (xyz[j][limitsEdge[j].first + leftNode[j]] + xyz[j][limitsEdge[j].second + leftNode[j]]) / 2.0;
+							if (InDomain(leftNode).first)
 								reducelimit = true;
-						}
-						else if (limitsEdge[i].first == xyz[i].size() - 1)
-							reducelimit = true;
-						
+						}					
 					}
 
 				for (int k = limitsEdge[2].first; k <= limitsEdge[2].second; k++)
@@ -357,15 +353,15 @@ void Grid::FormBC(const std::array<std::vector<double>, SIZE_NODE>& xyz, const s
 							{
 							case 0:
 								vRect = { kxy_0 + jx_0 + i, kxy_0 + jx_1 + i, kxy_1 + jx_0 + i, kxy_1 + jx_1 + i };
-								if(reducelimit) elementOffset = k * (x.size() - 1) * (y.size() - 1) + j * (x.size() - 1) + i - 1;								
+								if(reducelimit) elementOffset--;								
 								break;
 							case 1:
 								vRect = { kxy_0 + jx_0 + i, kxy_0 + jx_0 + i + 1, kxy_1 + jx_0 + i, kxy_1 + jx_0 + i + 1 };
-								if (reducelimit) elementOffset = k * (x.size() - 1) * (y.size() - 1) + (j - 1) * (x.size() - 1) + i;								
+								if (reducelimit) elementOffset -= x.size() - 1;								
 								break;
 							case 2:
 								vRect = { kxy_0 + jx_0 + i, kxy_0 + jx_0 + i + 1, kxy_0 + jx_1 + i, kxy_0 + jx_1 + i + 1 };
-								if (reducelimit) elementOffset = (k - 1) * (x.size() - 1) * (y.size() - 1) + j * (x.size() - 1) + i;
+								if (reducelimit) elementOffset -= (x.size() - 1) * (y.size() - 1);
 								break;
 							}
 

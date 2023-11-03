@@ -17,7 +17,7 @@ public:
 		Vector operator*(const Vector& v) const;
 	};
 
-	enum class TYPE_SOLVER { LU, LOSLU, BÑGSTABLU };
+	enum class TYPE_SOLVER { LU, LOSLU, BCGSTABLU };
 	SparseSLAE() {}
 	
 	void GenerateSLAE(const std::vector<Grid::Element>& elements, int N, int neighbors);
@@ -40,7 +40,7 @@ private:
 
 	void LUSolve();
 	int LosLU(double eps, int maxIterations);
-	int BÑGSTABLU(double eps, int maxIterations);
+	int BCGSTABLU(double eps, int maxIterations);
 
 	SparseMatrix m_M;
 	Vector m_b;

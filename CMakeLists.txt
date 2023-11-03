@@ -6,6 +6,7 @@ project(${PROJECT_NAME})
 add_executable(${PROJECT_NAME} 
 src/main.cpp
 src/functions.h
+src/dimensions.h
 
 src/grid/Grid.h
 src/grid/Grid.cpp
@@ -23,6 +24,8 @@ src/FEM/FEM.h
 src/FEM/FEM.cpp
 src/FEM/LocalAssembly.h
 src/FEM/LocalAssembly.cpp
+src/FEM/differentiation.h
+src/FEM/differentiation.cpp
 )
 
 target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_17)

@@ -84,7 +84,7 @@ void SparseSLAE::LUSolve()
 
 }
 
-int SparseSLAE::BÑGSTABLU(double eps, int maxIterations)
+int SparseSLAE::BCGSTABLU(double eps, int maxIterations)
 {
     int n = m_M.di.size();
 
@@ -383,8 +383,8 @@ int SparseSLAE::Solve(TYPE_SOLVER typeSolver)
     case TYPE_SOLVER::LOSLU:
         return LosLU(1e-15, 10000);
         break;
-    case TYPE_SOLVER::BÑGSTABLU:
-        return BÑGSTABLU(1e-15, 10000);
+    case TYPE_SOLVER::BCGSTABLU:
+        return BCGSTABLU(1e-15, 10000);
         break;
     }
 }

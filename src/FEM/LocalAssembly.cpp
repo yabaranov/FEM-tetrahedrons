@@ -1,5 +1,6 @@
 #include "LocalAssembly.h"
 #include "FEM.h"
+#include "differentiation.h"
 
 void LocalAssembly::GetFiniteVectorBC_2(FiniteVector<SIZE_EDGE>& lV, int edgeNum)
 {

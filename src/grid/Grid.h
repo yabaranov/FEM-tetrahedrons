@@ -3,7 +3,7 @@
 #include <vector>
 #include <array>
 #include <functional>
-#include "../functions.h"
+#include "../dimensions.h"
 
 class Grid
 {
@@ -105,7 +105,7 @@ private:
 
 	void TransformDomains();
 	bool QuadrilateralIsRectangle(std::array<Point2D, NUMBER_NODES_CUBE / 2> quadrilateral) const;
-	std::array<std::vector<double>, SIZE_NODE> FormCubicGrid();
+	std::array<std::vector<double>, SIZE_NODE> FormCubicGrid() const;
 	std::array<std::vector<double>, SIZE_NODE> CalculationLimits—ubicGrid() const;
 	std::pair<bool, int> InDomain(const std::array<double, SIZE_NODE>& node) const;
 

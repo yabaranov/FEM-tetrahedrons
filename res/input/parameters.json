@@ -1,5 +1,6 @@
 {
 	"lambdas" : [2.0],
 	"gammas"  : [2.0],
-	"bettas"  : [2.0]
+	"bettas"  : [2.0],
+	"typeSolver" : "BCGSTABLU"
 }
