@@ -1,6 +1,7 @@
 #include "grid/Grid.h"
 #include "FEM/FEM.h"
 #include <iostream>
+#include <fstream>
 
 int main()
 {
@@ -11,13 +12,14 @@ int main()
 	grid.WriteGrid();
 
 	FEM fem(grid, [](const std::array<double, SIZE_NODE>& args)
-		{auto&& [x, y, z] = args; return x+y+z;	});
+		{auto&& [x, y, z] = args; return std::sin(x+y+z); });
 	
 	fem.ReadParametersJSON();
 	fem.CollectSLAE();
 	fem.ConsiderBoundaryConditions();
 	fem.Solve();
-	fem.Output(std::cout);
+	//fem.CheckSolution(std::cout);
+	fem.WriteSolution();
 
 	return 0;
 }

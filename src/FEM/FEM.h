@@ -15,7 +15,8 @@ public:
 	void CollectSLAE();
 	void Solve() { m_sparseSLAE.Solve(m_typeSolver); }
 	void ConsiderBoundaryConditions();
-	std::ostream& Output(std::ostream& os) const;
+	std::ostream& CheckSolution(std::ostream& os) const;
+	bool WriteSolution() const;
 
 	const Grid& GetGrid() const { return m_grid; }
 

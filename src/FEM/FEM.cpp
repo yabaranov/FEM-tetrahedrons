@@ -156,14 +156,17 @@ double FEM::NumericalU_betta(FiniteVector<SIZE_NODE> n, int edgeNum, int verNum)
 		gradient(m_u_g, m_grid.GetNode(m_grid.GetEdgeBC_3(edgeNum).vertexes[verNum])) * n + m_u_g(m_grid.GetNode(m_grid.GetEdgeBC_3(edgeNum).vertexes[verNum]));
 }
 
-std::ostream& FEM::Output(std::ostream& os) const
+std::ostream& FEM::CheckSolution(std::ostream& os) const
 {
 	const Vector& x = m_sparseSLAE.Get_x();
 
 	double sum_1 = 0, sum_2 = 0;
+	
 	os << "+-------+-------+-------+----------------------+----------------------+----------------------+\n";
 	os << "|   X   |   Y   |   Z   |          u           |          u*          |         |u-u*|       |\n";
 	os << "+-------+-------+-------+----------------------+----------------------+----------------------+\n";
+	
+	
 	for (int i = 0; i < m_grid.SizeNodes(); i++)
 	{
 		auto node = m_grid.GetNode(i);
@@ -181,10 +184,36 @@ std::ostream& FEM::Output(std::ostream& os) const
 		}
 		
 	}
+	
 	os << "+--------------------------------------------------------------------------------------------+\n";
 	os << "|   ||u-u*||/||u*||    " << std::scientific << std::setw(70) << std::setprecision(DBL_DIG) << std::sqrt(sum_1 / sum_2) << "|\n";
 	os << "+--------------------------------------------------------------------------------------------+\n";
-
+	
 	return os;
+}
+
+bool FEM::WriteSolution() const
+{
+	std::string filePath = "../res/output/solution.txt";
+	std::ofstream solution;
+	solution.open(filePath.c_str(), std::ios::out | std::ios::binary);
+	if (!solution.is_open())
+	{
+		std::cerr << "Failed to open file: " << filePath << std::endl;
+		return false;
+	}
+
+	const Vector& x = m_sparseSLAE.Get_x();
+
+	for (int i = 0; i < m_grid.SizeNodes(); i++)
+	{
+		auto node = m_grid.GetNode(i);
+		for (int j = 0; j < node.size(); j++)
+			solution << " " << std::fixed << std::setw(7) << std::setprecision(3) << node[j];
+
+		solution << " " << std::scientific << std::setw(22) << std::setprecision(DBL_DIG) << x[i] << "\n";
+	}
+
+	return true;
 }
 

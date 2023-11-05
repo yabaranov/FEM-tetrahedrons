@@ -1,4 +1,5 @@
 #include <fstream>
+#include <iomanip>
 #include <rapidjson/document.h>
 #include <rapidjson/error/en.h>
 #include "Grid.h"
@@ -586,9 +587,12 @@ bool Grid::WriteGrid() const
 		return false;
 	}
 	for (const auto& node : m_nodes)
-		gridNodes << node[0] << " " << node[1] << " " << node[2] << "\n";
-
-
+	{
+		for (int j = 0; j < node.size(); j++)
+			gridNodes << std::fixed << std::setw(7) << std::setprecision(3) << node[j] << " ";
+		gridNodes << "\n";
+	}
+		
 	filePath = "../res/output/elements.txt";
 	std::ofstream gridElements;
 	gridElements.open(filePath.c_str(), std::ios::out | std::ios::binary);
@@ -598,8 +602,13 @@ bool Grid::WriteGrid() const
 		return false;
 	}
 	for (const auto& elem : m_elements)
-		gridElements << elem.vertexes[0] << " " << elem.vertexes[1] << " " <<
-		elem.vertexes[2] << " " << elem.vertexes[3] << "\n";
+	{
+		for (int j = 0; j < elem.vertexes.size(); j++)
+			gridElements << std::setw(7) << elem.vertexes[j] << " ";
+		gridElements << "\n";
+	}
+
+	return true;		
 }
 
 int Grid::GetNumberNeighboringNodes() const
