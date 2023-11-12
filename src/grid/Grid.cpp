@@ -8,10 +8,14 @@
 
 void Grid::CreateGrid()
 {
-	//коррекция интервалов разбиения с учетом вложенности сетки
+	//коррекция разбиения с учетом вложенности сетки
 	for (int k = 0; k < m_splittingGrid.size(); k++)
 		for (int i = 0; i < m_splittingGrid[k].size(); i++)
+		{
 			m_splittingGrid[k][i].numIntervals *= m_gridNesting;
+			m_splittingGrid[k][i].coefficientDischarge = std::pow(m_splittingGrid[k][i].coefficientDischarge, 1.0 / m_gridNesting);
+		}
+			
 
 	TransformDomains();
 	std::array<std::vector<double>, SIZE_NODE> xyz = FormCubicGrid();
@@ -26,25 +30,28 @@ void Grid::TransformDomains()
 	{
 		const auto& bound = m_subdomains[i].boundaries;
 
+		std::array<std::array<double, SIZE_NODE>, NUMBER_NODES_CUBE> hexahedron;
+
+		std::array<int, 2> ind_1 = { 2, 3 };
+		std::array<int, 2> ind_2 = { 0, 1 };
+		std::array<int, 2> ind_3 = { 4, 5 };
+
+		for (int j = 0; j < hexahedron.size(); j++)
+		{
+			int n_1 = (j / 2) % 2;
+			int n_2 = j % 2;
+			int n_3 = j / 4;
+			hexahedron[j][0] = m_supportNodes[bound[ind_1[n_1]]][bound[ind_2[n_2]]].x;
+			hexahedron[j][1] = m_supportNodes[bound[ind_1[n_1]]][bound[ind_2[n_2]]].y;
+			hexahedron[j][2] = m_height[bound[ind_3[n_3]]];
+		}
+
+		m_hexahedronSubdomains.push_back(hexahedron);
+
 		if (!QuadrilateralIsRectangle({ m_supportNodes[bound[2]][bound[0]], m_supportNodes[bound[2]][bound[1]],
 			m_supportNodes[bound[3]][bound[0]], m_supportNodes[bound[3]][bound[1]] }))
-		{
-			std::array<std::array<double, SIZE_NODE>, NUMBER_NODES_CUBE> hexahedron;
-
-			std::array<int, 2> ind_1 = { 2, 3 };
-			std::array<int, 2> ind_2 = { 0, 1 };
-			std::array<int, 2> ind_3 = { 4, 5 };
-
-			for (int j = 0; j < hexahedron.size(); j++)
-			{
-				int n_1 = (j / 2) % 2;
-				int n_2 = j % 2;
-				int n_3 = j / 4;
-				hexahedron[j][0] = m_supportNodes[bound[ind_1[n_1]]][bound[ind_2[n_2]]].x;
-				hexahedron[j][1] = m_supportNodes[bound[ind_1[n_1]]][bound[ind_2[n_2]]].y;
-				hexahedron[j][2] = m_height[bound[ind_3[n_3]]];
-			}
-			m_hexahedronSubdomains.push_back(hexahedron);
+		{			
+			m_trulyhexahedronSubdomains.push_back(hexahedron);
 			m_numbersCurvedSubdomains.push_back(i);
 		}
 
@@ -54,8 +61,7 @@ void Grid::TransformDomains()
 			std::max(m_supportNodes[bound[2]][bound[1]].x, m_supportNodes[bound[3]][bound[1]].x) },
 			std::pair<double, double>{ std::min(m_supportNodes[bound[2]][bound[0]].y, m_supportNodes[bound[2]][bound[1]].y),
 			std::max(m_supportNodes[bound[3]][bound[0]].y, m_supportNodes[bound[3]][bound[1]].y) },
-			std::pair<double, double>{ m_height[bound[4]],
-			m_height[bound[5]] } 
+			std::pair<double, double>{ m_height[bound[4]], m_height[bound[5]] } 
 		});
 	}
 }
@@ -172,7 +178,7 @@ std::vector<int> Grid::FormNodes(const std::array<std::vector<double>, SIZE_NODE
 					{
 						//отображаем узел из нее в изначальную область
 						TransformCubeToHexahedron isoparametricMap(m_cubicSubdomains[insideDomain.second],
-							m_hexahedronSubdomains[index]);
+							m_trulyhexahedronSubdomains[index]);
 						isoparametricMap.Transform(node);
 					}
 					m_nodes.push_back(node);
@@ -431,7 +437,7 @@ bool Grid::ReadGridJSON()
 
 	if (JSONString.empty())
 	{
-		std::cerr << "No JSON resources file!" << std::endl;
+		std::cerr << "No JSON grid file!" << std::endl;
 		return false;
 	}
 
@@ -606,6 +612,25 @@ bool Grid::WriteGrid() const
 		for (int j = 0; j < elem.vertexes.size(); j++)
 			gridElements << std::setw(7) << elem.vertexes[j] << " ";
 		gridElements << "\n";
+	}
+
+	filePath = "../res/output/hexahedron subdomains.txt";
+	std::ofstream gridsubdomains;
+	gridsubdomains.open(filePath.c_str(), std::ios::out | std::ios::binary);
+	if (!gridsubdomains.is_open())
+	{
+		std::cerr << "Failed to open file: " << filePath << std::endl;
+		return false;
+	}
+	for (const auto& subdomain : m_hexahedronSubdomains)
+	{
+		for (int i = 0; i < subdomain.size(); i++)
+		{
+			for (int j = 0; j < subdomain[i].size(); j++)
+				gridsubdomains << std::setw(5) << subdomain[i][j] << " ";
+
+		}
+		gridsubdomains << std::endl;
 	}
 
 	return true;		

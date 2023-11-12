@@ -12,7 +12,7 @@ int main()
 	grid.WriteGrid();
 
 	FEM fem(grid, [](const std::array<double, SIZE_NODE>& args)
-		{auto&& [x, y, z] = args; return std::sin(x+y+z); });
+		{auto&& [x, y, z] = args; return sin(x + y + z); });
 	
 	fem.ReadParametersJSON();
 	fem.CollectSLAE();

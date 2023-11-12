@@ -27,21 +27,21 @@
 		"splittingGrid":
 		[
 			[
-				{"numIntervals": 2, "coefficientDischarge": 0.8}, 
-				{"numIntervals": 2, "coefficientDischarge": 0.8}, 
-				{"numIntervals": 2, "coefficientDischarge": 0.8}, 
-				{"numIntervals": 2, "coefficientDischarge": 0.8}, 
-				{"numIntervals": 2, "coefficientDischarge": 0.8}
+				{"numIntervals": 2, "coefficientDischarge": 1}, 
+				{"numIntervals": 2, "coefficientDischarge": 1}, 
+				{"numIntervals": 2, "coefficientDischarge": 1}, 
+				{"numIntervals": 2, "coefficientDischarge": 1}, 
+				{"numIntervals": 2, "coefficientDischarge": 1}
 			],
 			
 			[
-				{"numIntervals": 2, "coefficientDischarge": 0.8}, 
-				{"numIntervals": 2, "coefficientDischarge": 0.8}
+				{"numIntervals": 2, "coefficientDischarge": 1}, 
+				{"numIntervals": 2, "coefficientDischarge": 1}
 			],
 			[
-				{"numIntervals": 2, "coefficientDischarge": 0.8}, 
-				{"numIntervals": 2, "coefficientDischarge": 0.8}, 
-				{"numIntervals": 2, "coefficientDischarge": 0.8}
+				{"numIntervals": 2, "coefficientDischarge": 1}, 
+				{"numIntervals": 2, "coefficientDischarge": 1}, 
+				{"numIntervals": 2, "coefficientDischarge": 1}
 			]
 		],
 		

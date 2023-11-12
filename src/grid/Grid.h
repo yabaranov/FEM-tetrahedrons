@@ -99,9 +99,11 @@ private:
 
 	std::vector<BoundaryCondition> m_BC;
 
-	std::vector<std::array<std::array<double, SIZE_NODE>, NUMBER_NODES_CUBE>> m_hexahedronSubdomains;
+	std::vector<std::array<std::array<double, SIZE_NODE>, NUMBER_NODES_CUBE>> m_trulyhexahedronSubdomains;
 	std::vector<std::array<std::pair<double, double>, SIZE_NODE>> m_cubicSubdomains;
 	std::vector<int> m_numbersCurvedSubdomains;
+
+	std::vector<std::array<std::array<double, SIZE_NODE>, NUMBER_NODES_CUBE>> m_hexahedronSubdomains;
 
 	void TransformDomains();
 	bool QuadrilateralIsRectangle(std::array<Point2D, NUMBER_NODES_CUBE / 2> quadrilateral) const;
