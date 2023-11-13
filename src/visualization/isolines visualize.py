@@ -12,6 +12,8 @@ def SameSide(v1, v2, v3, v4, p):
   
 def pointInside(verts, p):   
     return SameSide(verts[1], verts[0], verts[3], verts[5], p) and SameSide(verts[5], verts[4], verts[7], verts[1], p) and SameSide(verts[0], verts[1], verts[4], verts[2], p) and SameSide(verts[3], verts[2], verts[7], verts[1], p) and SameSide(verts[1], verts[3], verts[5], verts[0], p) and SameSide(verts[0], verts[4], verts[2], verts[1], p)
+
+    
 x = []
 y = []
 z = []
@@ -87,23 +89,29 @@ x_slider = Slider(
     valfmt="%i"
 )
 
-datax = getDatax(unique_x[int(len(unique_x) / 2)])
 
-triangx = mtri.Triangulation(datax[0] , datax[1])
-
-ymidx = np.array(datax[0])[triangx.triangles].mean(axis=1)
-zmidx = np.array(datax[1])[triangx.triangles].mean(axis=1)
-triangx.set_mask(getMaskx(ymidx, zmidx, unique_x[int(len(unique_x) / 2)]))
-
-countourx = axx.tricontourf(triangx, datax[2])
-axx.tricontour(countourx, colors='black')
-colbarx = fig.colorbar(countourx, ax=axx)
-axx.set_title('x = ' + str(unique_x[int(len(unique_x) / 2)]), fontsize=28)
+for i in range(len(unique_x)):
+    try:
+        datax = getDatax(unique_x[i])
+        
+        triangx = mtri.Triangulation(datax[0] , datax[1])
+        
+        ymidx = np.array(datax[0])[triangx.triangles].mean(axis=1)
+        zmidx = np.array(datax[1])[triangx.triangles].mean(axis=1)
+        triangx.set_mask(getMaskx(ymidx, zmidx, unique_x[i]))
+        
+        countourx = axx.tricontourf(triangx, datax[2])
+        axx.tricontour(countourx, colors='black')
+        colbarx = fig.colorbar(countourx, ax=axx)
+        axx.set_title('x = ' + str(unique_x[i]), fontsize=28)
+        break
+    except:       
+        pass
 
 
 def updatex(val):
     try:
-        data = getDatay(unique_x[int(val)])
+        data = getDatax(unique_x[int(val)])
         
         triang = mtri.Triangulation(data[0] , data[1])
     
@@ -120,7 +128,6 @@ def updatex(val):
         axx.set_title('x = ' + str(unique_x[int(val)]), fontsize=28)
         plt.draw() 
     except:
-        print("Error! x = " + str(unique_x[int(val)]))
         pass
 
 
@@ -167,39 +174,44 @@ y_slider = Slider(
     valinit=0,
     valfmt="%i"
 )
-
-datay = getDatay(unique_y[0])
-
-triangy = mtri.Triangulation(datay[0] , datay[1])
-
-xmidy = np.array(datay[0])[triangy.triangles].mean(axis=1)
-ymidy = np.array(datay[1])[triangy.triangles].mean(axis=1)
-triangy.set_mask(getMasky(xmidy, ymidy, unique_y[0]))
-
-countoury = axy.tricontourf(triangy, datay[2])
-axy.tricontour(countoury, colors='black')
-colbary = fig.colorbar(countoury, ax=axy)
-axy.set_title('y = ' + str(unique_y[0]), fontsize=28)
-
+for i in range(len(unique_y)):
+    try:
+        datay = getDatay(unique_y[i])
+        
+        triangy = mtri.Triangulation(datay[0] , datay[1])
+        
+        xmidy = np.array(datay[0])[triangy.triangles].mean(axis=1)
+        ymidy = np.array(datay[1])[triangy.triangles].mean(axis=1)
+        triangy.set_mask(getMasky(xmidy, ymidy, unique_y[i]))
+        
+        countoury = axy.tricontourf(triangy, datay[2])
+        axy.tricontour(countoury, colors='black')
+        colbary = fig.colorbar(countoury, ax=axy)
+        axy.set_title('y = ' + str(unique_y[i]), fontsize=28)
+        break
+    except:       
+        pass
 
 def updatey(val):
-    data = getDatay(unique_y[int(val)])
-     
-    triang = mtri.Triangulation(data[0] , data[1])
+    try:
+        data = getDatay(unique_y[int(val)])
+        
+        triang = mtri.Triangulation(data[0] , data[1])
+        
+        xmid = np.array(data[0])[triang.triangles].mean(axis=1)
+        ymid = np.array(data[1])[triang.triangles].mean(axis=1)
+        triang.set_mask(getMasky(xmid, ymid, unique_y[int(val)]))
     
-    xmid = np.array(data[0])[triang.triangles].mean(axis=1)
-    ymid = np.array(data[1])[triang.triangles].mean(axis=1)
-    triang.set_mask(getMasky(xmid, ymid, unique_y[int(val)]))
-
-    axy.collections.clear()    
-    countour = axy.tricontourf(triang, data[2])
-    axy.tricontour(countour, colors='black')
-    global colbary
-    colbary.remove()
-    colbary = fig.colorbar(countour, ax=axy)   
-    axy.set_title('y = ' + str(unique_y[int(val)]), fontsize=28)
-    plt.draw() 
-
+        axy.collections.clear()    
+        countour = axy.tricontourf(triang, data[2])
+        axy.tricontour(countour, colors='black')
+        global colbary
+        colbary.remove()
+        colbary = fig.colorbar(countour, ax=axy)   
+        axy.set_title('y = ' + str(unique_y[int(val)]), fontsize=28)
+        plt.draw() 
+    except:
+        pass
 
 y_slider.on_changed(updatey)
 
@@ -245,39 +257,44 @@ z_slider = Slider(
     valfmt="%i"
 )
 
-
-dataz = getDataz(unique_z[0])
-
-triangz = mtri.Triangulation(dataz[0] , dataz[1])
-
-xmidz = np.array(dataz[0])[triangz.triangles].mean(axis=1)
-ymidz = np.array(dataz[1])[triangz.triangles].mean(axis=1)
-triangz.set_mask(getMaskz(xmidz, ymidz, unique_z[0]))
-
-countourz = axz.tricontourf(triangz, dataz[2])
-axz.tricontour(countourz, colors='black')
-colbarz = fig.colorbar(countourz, ax=axz)
-axz.set_title('z = ' + str(unique_z[0]), fontsize=28)
-
+for i in range(len(unique_z)):
+    try:
+        dataz = getDataz(unique_z[i])
+        
+        triangz = mtri.Triangulation(dataz[0] , dataz[1])
+        
+        xmidz = np.array(dataz[0])[triangz.triangles].mean(axis=1)
+        ymidz = np.array(dataz[1])[triangz.triangles].mean(axis=1)
+        triangz.set_mask(getMaskz(xmidz, ymidz, unique_z[i]))
+        
+        countourz = axz.tricontourf(triangz, dataz[2])
+        axz.tricontour(countourz, colors='black')
+        colbarz = fig.colorbar(countourz, ax=axz)
+        axz.set_title('z = ' + str(unique_z[i]), fontsize=28)
+        break
+    except:       
+        pass
 
 def updatez(val):
-    data = getDataz(unique_z[int(val)])
-     
-    triang = mtri.Triangulation(data[0] , data[1])
+    try:
+        data = getDataz(unique_z[int(val)])
+        
+        triang = mtri.Triangulation(data[0] , data[1])
+        
+        xmid = np.array(data[0])[triang.triangles].mean(axis=1)
+        ymid = np.array(data[1])[triang.triangles].mean(axis=1)
+        triang.set_mask(getMaskz(xmid, ymid, unique_z[int(val)]))
     
-    xmid = np.array(data[0])[triang.triangles].mean(axis=1)
-    ymid = np.array(data[1])[triang.triangles].mean(axis=1)
-    triang.set_mask(getMaskz(xmid, ymid, unique_z[int(val)]))
-
-    axz.collections.clear()    
-    countour = axz.tricontourf(triang, data[2])
-    axz.tricontour(countour, colors='black')
-    global colbarz
-    colbarz.remove()
-    colbarz = fig.colorbar(countour, ax=axz)   
-    axz.set_title('z = ' + str(unique_z[int(val)]), fontsize=28)
-    plt.draw() 
-
+        axz.collections.clear()    
+        countour = axz.tricontourf(triang, data[2])
+        axz.tricontour(countour, colors='black')
+        global colbarz
+        colbarz.remove()
+        colbarz = fig.colorbar(countour, ax=axz)   
+        axz.set_title('z = ' + str(unique_z[int(val)]), fontsize=28)
+        plt.draw() 
+    except:
+        pass
 
 z_slider.on_changed(updatez)
 
