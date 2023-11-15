@@ -101,11 +101,11 @@ void FEM::ConsiderBC_2()
 {
 	LocalAssembly lA(*this);
 	
-	for (int edgeNum = 0; edgeNum < m_grid.SizeEdgesBC_2(); edgeNum++)
+	for (int edgeNum = 0; edgeNum < m_grid.SizeBoundaryEdgesBC_2(); edgeNum++)
 	{
 		FiniteVector<SIZE_EDGE> lV;
 		lA.GetFiniteVectorBC_2(lV, edgeNum);
-		AddFiniteVector(lV, m_grid.GetEdgeBC_2(edgeNum).vertexes);
+		AddFiniteVector(lV, m_grid.GetBoundaryEdgeBC_2(edgeNum).vertexes);
 	}
 }
 
@@ -113,14 +113,14 @@ void FEM::ConsiderBC_3()
 {
 	LocalAssembly lA(*this);
 	
-	for (int edgeNum = 0; edgeNum < m_grid.SizeEdgesBC_3(); edgeNum++)
+	for (int edgeNum = 0; edgeNum < m_grid.SizeBoundaryEdgesBC_3(); edgeNum++)
 	{
 		FiniteMatrix<SIZE_EDGE> lM;
 		FiniteVector<SIZE_EDGE> lV;
 		lA.GetFiniteMatrixVectorBC_3(lM, lV, edgeNum);
 
-		AddFiniteMatrix(lM, m_grid.GetEdgeBC_3(edgeNum).vertexes);
-		AddFiniteVector(lV, m_grid.GetEdgeBC_3(edgeNum).vertexes);
+		AddFiniteMatrix(lM, m_grid.GetBoundaryEdgeBC_3(edgeNum).vertexes);
+		AddFiniteVector(lV, m_grid.GetBoundaryEdgeBC_3(edgeNum).vertexes);
 	}
 }
 
@@ -145,15 +145,15 @@ double FEM::NumericalF(int elemNum, int verNum) const
 		+ Gamma(m_grid.GetElement(elemNum).numberFormula) * m_u_g(m_grid.GetNode(m_grid.GetElement(elemNum).vertexes[verNum]));
 }
 
-double FEM::NumericalTetta(FiniteVector<SIZE_NODE> n, int edgeNum, int verNum) const
+double FEM::NumericalTetta(const FiniteVector<SIZE_NODE>& n, int edgeNum, int verNum) const
 {
-	return Lambda(m_grid.GetElement(m_grid.GetEdgeBC_2(edgeNum).elemNum).numberFormula) * gradient(m_u_g, m_grid.GetNode(m_grid.GetEdgeBC_2(edgeNum).vertexes[verNum])) * n;
+	return Lambda(m_grid.GetElement(m_grid.GetBoundaryEdgeBC_2(edgeNum).elemNum).numberFormula) * gradient(m_u_g, m_grid.GetNode(m_grid.GetBoundaryEdgeBC_2(edgeNum).vertexes[verNum])) * n;
 }
 
-double FEM::NumericalU_betta(FiniteVector<SIZE_NODE> n, int edgeNum, int verNum) const
+double FEM::NumericalU_betta(const FiniteVector<SIZE_NODE>& n, int edgeNum, int verNum) const
 {
-	return Lambda(m_grid.GetElement(m_grid.GetEdgeBC_3(edgeNum).elemNum).numberFormula) / Betta(m_grid.GetElement(m_grid.GetEdgeBC_3(edgeNum).elemNum).numberFormula) *
-		gradient(m_u_g, m_grid.GetNode(m_grid.GetEdgeBC_3(edgeNum).vertexes[verNum])) * n + m_u_g(m_grid.GetNode(m_grid.GetEdgeBC_3(edgeNum).vertexes[verNum]));
+	return Lambda(m_grid.GetElement(m_grid.GetBoundaryEdgeBC_3(edgeNum).elemNum).numberFormula) / Betta(m_grid.GetElement(m_grid.GetBoundaryEdgeBC_3(edgeNum).elemNum).numberFormula) *
+		gradient(m_u_g, m_grid.GetNode(m_grid.GetBoundaryEdgeBC_3(edgeNum).vertexes[verNum])) * n + m_u_g(m_grid.GetNode(m_grid.GetBoundaryEdgeBC_3(edgeNum).vertexes[verNum]));
 }
 
 std::ostream& FEM::CheckSolution(std::ostream& os) const

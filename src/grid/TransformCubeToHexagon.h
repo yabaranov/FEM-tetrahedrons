@@ -34,6 +34,6 @@ private:
 		[&](double z) { return (m_limitsCube[2].second - z) / (m_limitsCube[2].second - m_limitsCube[2].first); },
 		[&](double z) { return (z - m_limitsCube[2].first) / (m_limitsCube[2].second - m_limitsCube[2].first); }
 	};
-	double m_psi(int i, const std::array<double, SIZE_NODE>& args) 
+	double Psi(int i, const std::array<double, SIZE_NODE>& args) 
 	{ return m_X[i % 2](args[0]) * m_Y[(i / 2) % 2](args[1]) * m_Z[i / 4](args[2]); }
 };

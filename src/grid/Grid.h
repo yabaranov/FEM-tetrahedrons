@@ -20,22 +20,31 @@ public:
 
 	struct Element
 	{
-		Element(const std::array<int, SIZE_ELEMENT>& v, int n) : vertexes(v), numberFormula(n) {}
 		std::array<int, SIZE_ELEMENT> vertexes;
 		int numberFormula;
 	};
 	const std::vector<Element>& Elements() const { return m_elements; }
 	const Element& GetElement(int i) const { return m_elements[i]; }
 
-	struct Edge
-	{
-		Edge(const std::array<int, SIZE_EDGE>& v, int n) : vertexes(v), elemNum(n) {}
+	struct BoundaryEdge
+	{		
 		std::array<int, SIZE_EDGE> vertexes;
 		int elemNum;
 	};
-	const Edge& GetEdgeBC_2(int i) const { return m_BC_2[i]; }
-	const Edge& GetEdgeBC_3(int i) const { return m_BC_3[i]; }
+	const BoundaryEdge& GetBoundaryEdgeBC_2(int i) const { return m_BC_2[i]; }
+	const BoundaryEdge& GetBoundaryEdgeBC_3(int i) const { return m_BC_3[i]; }
 	int GetNumberNodeBC_1(int i) const { return m_BC_1[i]; }
+
+	struct Edge
+	{
+		std::array<int, SIZE_EDGE> vertexes;
+		std::array<int, 2> elemNums;
+		bool operator!=(const Edge& edge) const { return edge.vertexes != vertexes; }
+		bool operator==(const Edge& edge) const { return !(edge != *this); }
+	};
+	const Edge& GetEdge(int i) const { return m_edges[i]; }
+	int GetNumberEdge(const Edge& edge) const;
+	const std::array<int, NUMBER_EDGES_ELEMENT>& GetNumbersEdges(int numElem) const;
 
 	struct Subdomain
 	{
@@ -47,8 +56,8 @@ public:
 
 	int SizeElements() const { return m_elements.size(); }
 	int SizeNodes() const { return m_nodes.size(); }
-	int SizeEdgesBC_2() const { return m_BC_2.size(); }
-	int SizeEdgesBC_3() const { return m_BC_3.size(); }
+	int SizeBoundaryEdgesBC_2() const { return m_BC_2.size(); }
+	int SizeBoundaryEdgesBC_3() const { return m_BC_3.size(); }
 	int SizeNodesBC_1() const { return m_BC_1.size(); }
 
 	int GetNumberNeighboringNodes() const;
@@ -67,12 +76,10 @@ private:
 
 	std::vector<std::array<double, SIZE_NODE>> m_nodes;
 	std::vector<Element> m_elements;
-	
-	std::vector<Edge> m_BC_2;
-	std::vector<Edge> m_BC_3;
-	std::vector<int> m_BC_1;
-
-
+	std::vector<BoundaryEdge> m_BC_2;
+	std::vector<BoundaryEdge> m_BC_3;
+	std::vector<int> m_BC_1;	
+	std::vector<Edge> m_edges;
 	std::vector<Subdomain> m_subdomains;
 
 	struct Splitting
@@ -99,7 +106,7 @@ private:
 
 	std::vector<BoundaryCondition> m_BC;
 
-	std::vector<std::array<std::array<double, SIZE_NODE>, NUMBER_NODES_CUBE>> m_trulyhexahedronSubdomains;
+	std::vector<std::array<std::array<double, SIZE_NODE>, NUMBER_NODES_CUBE>> m_trulyHexahedronSubdomains;
 	std::vector<std::array<std::pair<double, double>, SIZE_NODE>> m_cubicSubdomains;
 	std::vector<int> m_numbersCurvedSubdomains;
 
@@ -114,6 +121,8 @@ private:
 	std::vector<int> FormNodes(const std::array<std::vector<double>, SIZE_NODE>& xyz);
 	std::vector<int> FormElements(const std::array<std::vector<double>, SIZE_NODE>& xyz, std::vector<int> missingNodes);
 	void FormBC(const std::array<std::vector<double>, SIZE_NODE>& xyz, const std::vector<int>& missingNodes, const std::vector<int>& missingElements);
-	std::array<std::pair<int, int>, SIZE_NODE> CalculationLimitsEdge(const std::array<int, SIZE_SUBDOMAIN>& boundaries);
+	std::array<std::pair<int, int>, SIZE_NODE> CalculationLimitsBoundaryEdge(const std::array<int, SIZE_SUBDOMAIN>& boundaries);
 	int SearchElement(const std::array<int, SIZE_EDGE>& vertexes, int l, int r);
+	void FormEdges();
+
 };

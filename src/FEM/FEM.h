@@ -21,8 +21,10 @@ public:
 	const Grid& GetGrid() const { return m_grid; }
 
 	double NumericalF(int elemNum, int verNum) const;
-	double NumericalTetta(FiniteVector<SIZE_NODE> n, int edgeNum, int verNum) const;
-	double NumericalU_betta(FiniteVector<SIZE_NODE> n, int edgeNum, int verNum) const;
+
+	double NumericalTetta(const FiniteVector<SIZE_NODE>& n, int edgeNum, int verNum) const;
+
+	double NumericalU_betta(const FiniteVector<SIZE_NODE>& n, int edgeNum, int verNum) const;
 	double Lambda(int numberFormula) const { return m_lambdas[numberFormula]; }
 	double Betta(int numberFormula) const { return m_bettas[numberFormula]; }
 	double Gamma(int numberFormula) const { return m_gammas[numberFormula]; }

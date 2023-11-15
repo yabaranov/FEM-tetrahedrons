@@ -7,7 +7,7 @@ void TransformCubeToHexahedron::Transform(std::array<double, SIZE_NODE>& node)
 	{
 		newNode[i] = 0.0;
 		for (int j = 0; j < NUMBER_NODES_CUBE; j++)
-			newNode[i] += m_psi(j, node) * m_hexahedron[j][i];
+			newNode[i] += Psi(j, node) * m_hexahedron[j][i];
 	}
 	node = newNode;
 }

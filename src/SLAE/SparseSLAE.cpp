@@ -387,4 +387,6 @@ int SparseSLAE::Solve(TYPE_SOLVER typeSolver)
         return BCGSTABLU(1e-15, 10000);
         break;
     }
+
+    return -1;
 }

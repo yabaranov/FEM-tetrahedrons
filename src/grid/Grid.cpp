@@ -1,5 +1,7 @@
 #include <fstream>
 #include <iomanip>
+#include <algorithm>
+#include <cinttypes>
 #include <rapidjson/document.h>
 #include <rapidjson/error/en.h>
 #include "Grid.h"
@@ -22,6 +24,7 @@ void Grid::CreateGrid()
 	std::vector<int> missingNodes = FormNodes(xyz);
 	std::vector<int> missingElements = FormElements(xyz, missingNodes);
 	FormBC(xyz, missingNodes, missingElements);
+	FormEdges();
 }
 
 void Grid::TransformDomains()
@@ -51,7 +54,7 @@ void Grid::TransformDomains()
 		if (!QuadrilateralIsRectangle({ m_supportNodes[bound[2]][bound[0]], m_supportNodes[bound[2]][bound[1]],
 			m_supportNodes[bound[3]][bound[0]], m_supportNodes[bound[3]][bound[1]] }))
 		{			
-			m_trulyhexahedronSubdomains.push_back(hexahedron);
+			m_trulyHexahedronSubdomains.push_back(hexahedron);
 			m_numbersCurvedSubdomains.push_back(i);
 		}
 
@@ -178,7 +181,7 @@ std::vector<int> Grid::FormNodes(const std::array<std::vector<double>, SIZE_NODE
 					{
 						//отображаем узел из нее в изначальную область
 						TransformCubeToHexahedron isoparametricMap(m_cubicSubdomains[insideDomain.second],
-							m_trulyhexahedronSubdomains[index]);
+							m_trulyHexahedronSubdomains[index]);
 						isoparametricMap.Transform(node);
 					}
 					m_nodes.push_back(node);
@@ -273,11 +276,11 @@ std::vector<int> Grid::FormElements(const std::array<std::vector<double>, SIZE_N
 
 }
 
-std::array<std::pair<int, int>, SIZE_NODE> Grid::CalculationLimitsEdge(const std::array<int, SIZE_SUBDOMAIN>& boundaries)
+std::array<std::pair<int, int>, SIZE_NODE> Grid::CalculationLimitsBoundaryEdge(const std::array<int, SIZE_SUBDOMAIN>& boundaries)
 {
-	std::array<std::pair<int, int>, SIZE_NODE> limitsEdge;
+	std::array<std::pair<int, int>, SIZE_NODE> limitsBoundaryEdge;
 
-	for (int i = 0; i < limitsEdge.size(); i++)
+	for (int i = 0; i < limitsBoundaryEdge.size(); i++)
 	{
 		std::pair<int, int> limit = { 0, 0 };
 		for (int j = 0; j < boundaries[2 * i]; j++)
@@ -286,10 +289,10 @@ std::array<std::pair<int, int>, SIZE_NODE> Grid::CalculationLimitsEdge(const std
 		for (int j = 0; j < boundaries[2 * i + 1]; j++)
 			limit.second += m_splittingGrid[i][j].numIntervals;
 
-		limitsEdge[i] = limit;
+		limitsBoundaryEdge[i] = limit;
 	}
 
-	return limitsEdge;
+	return limitsBoundaryEdge;
 }
 
 void Grid::FormBC(const std::array<std::vector<double>, SIZE_NODE>& xyz, const std::vector<int>& missingNodes, const std::vector<int>& missingElements)
@@ -298,15 +301,15 @@ void Grid::FormBC(const std::array<std::vector<double>, SIZE_NODE>& xyz, const s
 
 	for (int h = 0; h < m_BC.size(); h++)
 	{
-		std::array<std::pair<int, int>, SIZE_NODE> limitsEdge = CalculationLimitsEdge(m_BC[h].boundaries);
+		std::array<std::pair<int, int>, SIZE_NODE> limitsBoundaryEdge = CalculationLimitsBoundaryEdge(m_BC[h].boundaries);
 
 		switch (m_BC[h].typeBC)
 		{
 			case TYPE_BOUNDARY_CONDITION::FIRST:
 				
-				for (int k = limitsEdge[2].first; k <= limitsEdge[2].second; k++)
-					for (int j = limitsEdge[1].first; j <= limitsEdge[1].second; j++)
-						for (int i = limitsEdge[0].first; i <= limitsEdge[0].second; i++)
+				for (int k = limitsBoundaryEdge[2].first; k <= limitsBoundaryEdge[2].second; k++)
+					for (int j = limitsBoundaryEdge[1].first; j <= limitsBoundaryEdge[1].second; j++)
+						for (int i = limitsBoundaryEdge[0].first; i <= limitsBoundaryEdge[0].second; i++)
 						{
 								int number = k * x.size() * y.size() + j * x.size() + i;
 							//коррекция номеров вершин с учётом пропущенных вершин
@@ -319,39 +322,39 @@ void Grid::FormBC(const std::array<std::vector<double>, SIZE_NODE>& xyz, const s
 
 			case TYPE_BOUNDARY_CONDITION::SECOND:
 			case TYPE_BOUNDARY_CONDITION::THIRD:
-				std::vector<Edge>& BC = (m_BC[h].typeBC == TYPE_BOUNDARY_CONDITION::SECOND) ? m_BC_2 : m_BC_3;
+				std::vector<BoundaryEdge>& BC = (m_BC[h].typeBC == TYPE_BOUNDARY_CONDITION::SECOND) ? m_BC_2 : m_BC_3;
 
 				bool reducelimit = false;
 				int coordinateMatching = 0;
 				//коррекция лимитов циклов
-				for (int i = 0; i < limitsEdge.size(); i++)
-					if (limitsEdge[i].first != limitsEdge[i].second)					
-						limitsEdge[i].second--;				
+				for (int i = 0; i < limitsBoundaryEdge.size(); i++)
+					if (limitsBoundaryEdge[i].first != limitsBoundaryEdge[i].second)					
+						limitsBoundaryEdge[i].second--;				
 					else
 					{
 						coordinateMatching = i;		
-						if (0 < limitsEdge[i].first)
+						if (0 < limitsBoundaryEdge[i].first)
 						{
 							std::array<double, SIZE_NODE> leftNode{0, 0, 0};
 							leftNode[i]--;
 							for (int j = 0; j < leftNode.size(); j++)
-								leftNode[j] = (xyz[j][limitsEdge[j].first + leftNode[j]] + xyz[j][limitsEdge[j].second + leftNode[j]]) / 2.0;
+								leftNode[j] = (xyz[j][limitsBoundaryEdge[j].first + leftNode[j]] + xyz[j][limitsBoundaryEdge[j].second + leftNode[j]]) / 2.0;
 							if (InDomain(leftNode).first)
 								reducelimit = true;
 						}					
 					}
 
-				for (int k = limitsEdge[2].first; k <= limitsEdge[2].second; k++)
+				for (int k = limitsBoundaryEdge[2].first; k <= limitsBoundaryEdge[2].second; k++)
 				{
 					int kxy_0 = k * x.size() * y.size();
 					int kxy_1 = (k + 1) * x.size() * y.size();
 
-					for (int j = limitsEdge[1].first; j <= limitsEdge[1].second; j++)
+					for (int j = limitsBoundaryEdge[1].first; j <= limitsBoundaryEdge[1].second; j++)
 					{
 						int jx_0 = j * x.size();
 						int jx_1 = (j + 1) * x.size();
 
-						for (int i = limitsEdge[0].first; i <= limitsEdge[0].second; i++)
+						for (int i = limitsBoundaryEdge[0].first; i <= limitsBoundaryEdge[0].second; i++)
 						{
 							std::array<int, NUMBER_NODES_CUBE / 2> vRect;
 							int elementOffset = k * (x.size() - 1) * (y.size() - 1) + j * (x.size() - 1) + i;
@@ -428,6 +431,60 @@ int Grid::SearchElement(const std::array<int, SIZE_EDGE>& vertexes, int l, int r
 		if (edgeInElement) return i;
 	}
 	return -1;
+}
+
+void Grid::FormEdges()
+{
+	//номера граней в массиве вершин конечного элемента
+	std::array<std::array<int, SIZE_EDGE>, NUMBER_EDGES_ELEMENT> numEdges{ {{0, 1, 2}, {0, 1, 3}, {0, 2, 3}, {1, 2, 3}} };
+
+	//формирование массива граней
+	for (int i = 0; i < m_elements.size(); i++)
+		for (int j = 0; j < m_elements[i].vertexes.size(); j++)
+			m_edges.push_back({ { m_elements[i].vertexes[numEdges[j][0]], m_elements[i].vertexes[numEdges[j][1]], m_elements[i].vertexes[numEdges[j][2]] }, {i, -1} });
+		
+	//сортировка по трём вершинам c первой по третью с помощью составного ключа (если ключи < 2^21)
+	std::sort(m_edges.begin(), m_edges.end(), [](const auto& edge_1, const auto& edge_2) 
+		{return (edge_1.vertexes[0] | (static_cast<int64_t>(edge_1.vertexes[1]) << 21) | (static_cast<int64_t>(edge_1.vertexes[2]) << 42)) <
+		(edge_2.vertexes[0] | (static_cast<int64_t>(edge_2.vertexes[1]) << 21) | (static_cast<int64_t>(edge_2.vertexes[2]) << 42)); });
+
+	//удаление дубликатов граней
+	removeDuplicatesFromSortedArray(m_edges);
+
+	std::vector<int> ind(m_edges.size(), 0);
+
+	for (int i = 0; i < m_elements.size(); i++)
+		for (int j = 0; j < m_elements[i].vertexes.size(); j++)
+		{			
+			int num = GetNumberEdge(Edge{ {m_elements[i].vertexes[numEdges[j][0]], m_elements[i].vertexes[numEdges[j][1]], m_elements[i].vertexes[numEdges[j][2]]}, {i, -1} });
+			if (ind[num])
+			{
+				m_edges[num].elemNums[1] = ind[num];
+				m_edges[ind[num]].elemNums[1] = i;
+			}				
+			else		
+				ind[num] = i;			
+		}	
+}
+
+int Grid::GetNumberEdge(const Edge& edge) const
+{
+	//поиск с помощью составного ключа (если ключи < 2^21)
+	return binarySearch(m_edges, edge, 0, m_edges.size() - 1, [](const auto& edge_1, const auto& edge_2)->bool
+		{return (edge_1.vertexes[0] | (static_cast<int64_t>(edge_1.vertexes[1]) << 21) | (static_cast<int64_t>(edge_1.vertexes[2]) << 42)) >
+		(edge_2.vertexes[0] | (static_cast<int64_t>(edge_2.vertexes[1]) << 21) | (static_cast<int64_t>(edge_2.vertexes[2]) << 42)); });
+}
+
+const std::array<int, NUMBER_EDGES_ELEMENT>& Grid::GetNumbersEdges(int numElem) const
+{
+	//номера граней в массиве вершин конечного элемента
+	std::array<std::array<int, SIZE_EDGE>, NUMBER_EDGES_ELEMENT> numEdges{ {{0, 1, 2}, {0, 1, 3}, {0, 2, 3}, {1, 2, 3}} };
+	std::array<int, NUMBER_EDGES_ELEMENT> numbersEdges;
+
+	for (int j = 0; j < m_elements[numElem].vertexes.size(); j++)
+		numbersEdges[j] = GetNumberEdge(Edge{ { m_elements[numElem].vertexes[numEdges[j][0]], m_elements[numElem].vertexes[numEdges[j][1]], m_elements[numElem].vertexes[numEdges[j][2]] }, { numElem, -1 } });
+
+	return numbersEdges;
 }
 
 bool Grid::ReadGridJSON()

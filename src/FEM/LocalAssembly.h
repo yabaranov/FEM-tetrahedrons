@@ -36,7 +36,7 @@ private:
 
 	double GetG(FiniteMatrix<SIZE_ELEMENT>& G, int elemNum);
 	FiniteMatrix<SIZE_ELEMENT> GetD(int elemNum);
-	double GetAreaEdge(Grid::TYPE_BOUNDARY_CONDITION typeBoundaryCondition, int edgeNum);
+	double GetAreaBoundaryEdge(Grid::TYPE_BOUNDARY_CONDITION typeBoundaryCondition, int edgeNum);
 
 	FiniteVector<SIZE_NODE> Getn(Grid::TYPE_BOUNDARY_CONDITION typeBoundaryCondition, int edgeNum);
 
